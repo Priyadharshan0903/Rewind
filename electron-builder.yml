@@ -1,0 +1,20 @@
+appId: com.relay.app
+productName: Relay
+directories:
+  output: dist
+  buildResources: resources
+files:
+  - out/**
+  - package.json
+icon: resources/icon.png
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  # Notarization intentionally off for local builds; set APPLE_ID etc. and
+  # remove this to notarize for distribution.
+  notarize: false
+npmRebuild: false

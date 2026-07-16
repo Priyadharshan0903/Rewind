@@ -1,0 +1,34 @@
+import { useUi } from '@/stores/ui'
+import { Overlay } from '@/components/common/Overlay'
+
+const SHORTCUTS: [string, string][] = [
+  ['⌘ ↩', 'Send request'],
+  ['⌘ P', 'Search collection'],
+  ['⌘ ,', 'Preferences'],
+  ['⌘ /', 'Keyboard shortcuts'],
+  ['Esc', 'Close dialogs & menus']
+]
+
+export function ShortcutsModal(): React.JSX.Element {
+  const closeOverlays = useUi((s) => s.closeOverlays)
+  return (
+    <Overlay onClose={() => closeOverlays()} center>
+      <div className="modal shortcuts-modal">
+        <div className="modal-title-row">
+          <span className="modal-title">Keyboard shortcuts</span>
+          <button className="icon-btn" onClick={() => closeOverlays()}>
+            ✕
+          </button>
+        </div>
+        <div className="shortcut-list">
+          {SHORTCUTS.map(([keys, label]) => (
+            <div key={keys} className="shortcut-row">
+              <span className="kbd">{keys}</span>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Overlay>
+  )
+}
