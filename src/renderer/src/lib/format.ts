@@ -45,6 +45,17 @@ export function dayLabel(ts: number): string {
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase()
 }
 
+/** Pretty-print JSON for display; non-JSON comes back untouched. */
+export function prettyJson(text: string): string {
+  const trimmed = text.trim()
+  if (!trimmed || (trimmed[0] !== '{' && trimmed[0] !== '[')) return text
+  try {
+    return JSON.stringify(JSON.parse(text), null, 2)
+  } catch {
+    return text
+  }
+}
+
 export function urlPath(url: string): string {
   try {
     const u = new URL(url)

@@ -63,6 +63,8 @@ interface AppState {
   removeEnvironment: (envId: string) => void
 
   addCollection: () => void
+  /** Adopt a collection created in the main process (OpenAPI import) and select its first request. */
+  adoptCollection: (collection: Collection) => void
   renameCollection: (collectionId: string, name: string) => void
   updateCollectionVariables: (collectionId: string, variables: KV[]) => void
   addFolder: (collectionId: string) => void
@@ -79,7 +81,8 @@ const DEFAULT_SETTINGS: Settings = {
   theme: 'light',
   accent: 'indigo',
   historyPanelOpen: true,
-  responseBodyLimitBytes: 1024 * 1024
+  responseBodyLimitBytes: 1024 * 1024,
+  requestPaneHeight: 196
 }
 
 const saveTimers = new Map<string, ReturnType<typeof setTimeout>>()
@@ -215,6 +218,12 @@ export const useApp = create<AppState>((set, get) => ({
     const collection: Collection = { id: newId(), name: 'New collection', version: 'v1', items: [] }
     set({ collections: [...get().collections, collection] })
     void window.relay.saveCollection(collection)
+  },
+
+  adoptCollection: (collection) => {
+    set({ collections: [...get().collections.filter((c) => c.id !== collection.id), collection] })
+    const first = firstRequest(collection.items)
+    if (first) set({ selection: { collectionId: collection.id, requestId: first.id } })
   },
 
   renameCollection: (collectionId, name) => mutateCollection(collectionId, (c) => ({ ...c, name }), set, get),

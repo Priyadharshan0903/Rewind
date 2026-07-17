@@ -30,6 +30,8 @@ export interface Settings {
   accent: AccentId
   historyPanelOpen: boolean
   responseBodyLimitBytes: number
+  /** Height of the request editor area (draggable splitter). */
+  requestPaneHeight: number
 }
 
 export interface Environment {
@@ -208,6 +210,13 @@ export interface ExportResult {
   canceled?: boolean
   path?: string
   error?: string
+}
+
+export interface OpenApiImportResult {
+  canceled?: boolean
+  error?: string
+  collection?: Collection
+  counts?: { requests: number; folders: number }
 }
 
 export interface ImportResult {

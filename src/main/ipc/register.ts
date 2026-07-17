@@ -2,12 +2,14 @@ import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { promises as fs } from 'node:fs'
 import { files as filesPaths } from '../services/paths'
 import { createProfile, deleteProfile, listProfiles, renameProfile, switchProfile } from '../services/profiles'
+import { convertToCollection, parseSpec } from '../services/openapiImport'
 import { IPC } from '@shared/ipc'
 import type {
   Collection,
   Environment,
   ExportResult,
   ImportResult,
+  OpenApiImportResult,
   RelayBundle,
   RequestNode,
   Run,
@@ -292,4 +294,25 @@ export function registerIpc(onThemeChange: (settings: Settings) => void): void {
   ipcMain.handle(IPC.profilesRename, (_e, id: string, name: string) => renameProfile(id, name))
 
   ipcMain.handle(IPC.profilesDelete, (_e, id: string) => deleteProfile(id))
+
+  ipcMain.handle(IPC.openapiImport, async (e): Promise<OpenApiImportResult> => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const { canceled, filePaths } = await dialog.showOpenDialog(win!, {
+      title: 'Import OpenAPI spec',
+      filters: [
+        { name: 'OpenAPI', extensions: ['json', 'yaml', 'yml'] },
+        { name: 'All files', extensions: ['*'] }
+      ],
+      properties: ['openFile']
+    })
+    if (canceled || !filePaths[0]) return { canceled: true }
+    try {
+      const doc = parseSpec(await fs.readFile(filePaths[0], 'utf8'))
+      const { collection, requestCount, folderCount } = convertToCollection(doc)
+      await saveCollection(collection)
+      return { collection, counts: { requests: requestCount, folders: folderCount } }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
 }

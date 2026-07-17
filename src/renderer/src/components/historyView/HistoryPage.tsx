@@ -4,7 +4,7 @@ import { useApp } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
 import { useUi } from '@/stores/ui'
 import { findRequest } from '@/lib/tree'
-import { dayLabel, fmtBytes, fmtMs, runTime, timeOfDay, urlPath } from '@/lib/format'
+import { dayLabel, fmtBytes, fmtMs, prettyJson, runTime, timeOfDay, urlPath } from '@/lib/format'
 import { CodeView } from '@/components/common/Code'
 import { CopyMenu } from '@/components/common/CopyMenu'
 
@@ -192,7 +192,7 @@ function Snapshot({ run }: { run: Run }): React.JSX.Element {
           </div>
           <div className="snap-body">
             <div className="micro-label">BODY</div>
-            <CodeView text={run.response?.bodyText || run.error || '— no body —'} />
+            <CodeView text={run.response ? prettyJson(run.response.bodyText) || '— no body —' : run.error || '— no body —'} />
           </div>
         </div>
       </div>

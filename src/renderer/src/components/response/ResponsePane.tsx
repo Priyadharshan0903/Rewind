@@ -2,7 +2,8 @@ import type { RequestNode } from '@shared/types'
 import { useApp, useMergedVars } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
 import { useUi } from '@/stores/ui'
-import { fmtBytes, fmtMs } from '@/lib/format'
+import { useMemo } from 'react'
+import { fmtBytes, fmtMs, prettyJson } from '@/lib/format'
 import { resolveForCodegen } from '@/lib/resolve'
 import { CodeView } from '@/components/common/Code'
 import { CopyMenu } from '@/components/common/CopyMenu'
@@ -21,6 +22,12 @@ export function ResponsePane({ request }: { request: RequestNode }): React.JSX.E
   // Snippets always reflect the request as currently edited, resolved
   // against collection + environment variables (not a stale stored run).
   const codegenReq = resolveForCodegen(request, vars)
+
+  // Servers often send compact JSON — prettify for display (raw is what's stored).
+  const displayBody = useMemo(
+    () => (run?.response ? prettyJson(run.response.bodyText) : ''),
+    [run?.response]
+  )
 
   const saveExample = async (): Promise<void> => {
     if (!run) return
@@ -103,7 +110,7 @@ export function ResponsePane({ request }: { request: RequestNode }): React.JSX.E
                 Body truncated for display — full size {fmtBytes(run.response.sizeBytes)}
               </div>
             )}
-            <CodeView text={run.response.bodyText || '— empty body —'} />
+            <CodeView text={displayBody || '— empty body —'} />
           </>
         )}
       </div>

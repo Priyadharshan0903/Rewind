@@ -866,11 +866,38 @@ textarea {
 
 .tab-content {
   flex: none;
-  height: 196px;
+  height: 196px; /* default; overridden inline by the splitter */
   overflow: auto;
   background: var(--sunken);
   display: flex;
   flex-direction: column;
+}
+
+.splitter {
+  flex: none;
+  height: 7px;
+  margin: -3px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: row-resize;
+  position: relative;
+  z-index: 5;
+}
+
+.splitter-grip {
+  width: 44px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.splitter:hover .splitter-grip,
+.splitter:active .splitter-grip {
+  opacity: 1;
+  background: var(--accent);
 }
 
 .tab-empty {

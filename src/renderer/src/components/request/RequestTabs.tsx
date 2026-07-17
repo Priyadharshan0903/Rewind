@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import type { KV, RequestNode } from '@shared/types'
 import { newId } from '@shared/id'
 import { useApp, useActiveEnv, useMergedVars } from '@/stores/app'
@@ -16,8 +17,40 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
   const tab = useUi((s) => s.tab)
   const setTab = useUi((s) => s.setTab)
   const vars = useMergedVars()
+  const savedHeight = useApp((s) => s.settings.requestPaneHeight)
+  const patchSettings = useApp((s) => s.patchSettings)
+  const [dragHeight, setDragHeight] = useState<number | null>(null)
+  const dragging = useRef(false)
   const inheritsAuth = request.auth.mode === 'inherit' && !!vars.token
   const headerCount = request.headers.filter((h) => h.enabled && h.key.trim()).length + (inheritsAuth ? 1 : 0)
+
+  const height = dragHeight ?? savedHeight
+
+  // Postman-style splitter: drag to trade request-editor space for response space.
+  const startDrag = (e: React.MouseEvent): void => {
+    e.preventDefault()
+    dragging.current = true
+    const startY = e.clientY
+    const startH = height
+    document.body.style.cursor = 'row-resize'
+    document.body.style.userSelect = 'none'
+    let latest = startH
+    const onMove = (ev: MouseEvent): void => {
+      latest = Math.max(90, Math.min(startH + (ev.clientY - startY), Math.round(window.innerHeight * 0.65)))
+      setDragHeight(latest)
+    }
+    const onUp = (): void => {
+      dragging.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      setDragHeight(null)
+      patchSettings({ requestPaneHeight: latest })
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
 
   return (
     <>
@@ -29,11 +62,19 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
           </button>
         ))}
       </div>
-      <div className="tab-content">
+      <div className="tab-content" style={{ height }}>
         {tab === 'body' && <BodyTab request={request} />}
         {tab === 'headers' && <HeadersTab request={request} />}
         {tab === 'auth' && <AuthTab request={request} />}
         {tab === 'scripts' && <ScriptsTab request={request} />}
+      </div>
+      <div
+        className="splitter"
+        title="Drag to resize · double-click to reset"
+        onMouseDown={startDrag}
+        onDoubleClick={() => patchSettings({ requestPaneHeight: 196 })}
+      >
+        <span className="splitter-grip" />
       </div>
     </>
   )

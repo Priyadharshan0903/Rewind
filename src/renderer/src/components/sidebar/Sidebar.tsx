@@ -89,6 +89,7 @@ export function Sidebar(): React.JSX.Element {
   const openEnvEditor = useUi((s) => s.openEnvEditor)
   const toast = useUi((s) => s.toast)
   const onContext = useContextMenu()
+  const importOpenApi = useImportOpenApi()
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -110,6 +111,7 @@ export function Sidebar(): React.JSX.Element {
     },
     { label: 'Edit variables…', action: () => openEnvEditor() },
     { sep: true },
+    { label: 'Import OpenAPI…', action: () => void importOpenApi() },
     {
       label: 'Import workspace…',
       action: async () => {
@@ -173,10 +175,25 @@ export function Sidebar(): React.JSX.Element {
   )
 }
 
-function ImportOpenApiButton(): React.JSX.Element {
+export function useImportOpenApi(): () => Promise<void> {
   const toast = useUi((s) => s.toast)
+  return async () => {
+    const result = await window.relay.importOpenApi()
+    if (result.error) {
+      toast(result.error, 'error')
+    } else if (result.collection) {
+      useApp.getState().adoptCollection(result.collection)
+      toast(
+        `Imported “${result.collection.name}” — ${result.counts?.requests ?? 0} requests in ${result.counts?.folders ?? 0} folders`
+      )
+    }
+  }
+}
+
+function ImportOpenApiButton(): React.JSX.Element {
+  const importOpenApi = useImportOpenApi()
   return (
-    <button className="import-btn" onClick={() => toast('OpenAPI import is coming soon')}>
+    <button className="import-btn" onClick={() => void importOpenApi()}>
       ⤓ Import OpenAPI
     </button>
   )

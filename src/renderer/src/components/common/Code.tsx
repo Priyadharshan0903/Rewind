@@ -23,9 +23,27 @@ export const CodeLine = memo(function CodeLine({
   )
 })
 
+// Above these sizes, tokenizing into thousands of spans makes React choke —
+// fall back to a plain <pre>, which the browser renders instantly.
+const MAX_HIGHLIGHT_CHARS = 200_000
+const MAX_HIGHLIGHT_LINES = 4_000
+const MAX_LINE_CHARS = 8_000
+
 /** Read-only tokenized code block (response bodies, snapshots). */
 export function CodeView({ text, language = 'json' }: { text: string; language?: 'json' | 'js' }): React.JSX.Element {
   const lines = useMemo(() => text.split('\n'), [text])
+  const plain =
+    text.length > MAX_HIGHLIGHT_CHARS ||
+    lines.length > MAX_HIGHLIGHT_LINES ||
+    lines.some((l) => l.length > MAX_LINE_CHARS)
+  if (plain) {
+    return (
+      <>
+        <div className="truncate-note">Large body — syntax highlighting off for speed</div>
+        <pre className="code-view">{text}</pre>
+      </>
+    )
+  }
   return (
     <pre className="code-view">
       {lines.map((l, i) => (

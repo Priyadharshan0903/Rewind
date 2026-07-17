@@ -20,5 +20,6 @@ export const IPC = {
   profilesSwitch: 'profiles:switch',
   profilesRename: 'profiles:rename',
   profilesDelete: 'profiles:delete',
+  openapiImport: 'openapi:import',
   shellOpenExternal: 'shell:openExternal'
 } as const

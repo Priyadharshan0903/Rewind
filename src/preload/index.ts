@@ -6,6 +6,7 @@ import type {
   Environment,
   ExportResult,
   ImportResult,
+  OpenApiImportResult,
   ProfilesState,
   Run,
   RunsQuery,
@@ -41,6 +42,7 @@ const api = {
   renameProfile: (id: string, name: string): Promise<ProfilesState> =>
     ipcRenderer.invoke(IPC.profilesRename, id, name),
   deleteProfile: (id: string): Promise<ProfilesState> => ipcRenderer.invoke(IPC.profilesDelete, id),
+  importOpenApi: (): Promise<OpenApiImportResult> => ipcRenderer.invoke(IPC.openapiImport),
   onRunAppended: (cb: (summary: RunSummary) => void): (() => void) => {
     const listener = (_e: unknown, summary: RunSummary): void => cb(summary)
     ipcRenderer.on(IPC.runsAppended, listener)

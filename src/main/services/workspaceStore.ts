@@ -9,7 +9,8 @@ const DEFAULT_SETTINGS: Settings = {
   theme: 'light',
   accent: 'indigo',
   historyPanelOpen: true,
-  responseBodyLimitBytes: 1024 * 1024
+  responseBodyLimitBytes: 1024 * 1024,
+  requestPaneHeight: 196
 }
 
 export async function loadBoot(): Promise<BootPayload> {
