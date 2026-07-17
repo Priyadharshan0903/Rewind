@@ -8,6 +8,7 @@ import { useRuns } from '@/stores/runs'
 import { useUi } from '@/stores/ui'
 import { findParentFolder } from '@/lib/tree'
 import { useVarSuggest } from '@/components/common/VarSuggest'
+import { varHoverHandlers } from '@/components/common/VarPeek'
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
 
@@ -207,6 +208,7 @@ function UrlInput({
         ref={inputRef}
         className="url-input code-font"
         value={url}
+        {...varHoverHandlers({ font: '500 12.5px "JetBrains Mono", monospace' })}
         onChange={(e) => {
           onChange(e.target.value)
           requestAnimationFrame(sync)

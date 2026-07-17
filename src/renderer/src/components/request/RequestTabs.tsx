@@ -6,6 +6,7 @@ import { useApp, useActiveEnv, useMergedVars } from '@/stores/app'
 import { useUi, type RequestTab } from '@/stores/ui'
 import { CodeEditor } from '@/components/common/Code'
 import { useVarSuggest } from '@/components/common/VarSuggest'
+import { varHoverHandlers } from '@/components/common/VarPeek'
 import { FindBar } from '@/components/common/FindBar'
 
 const TABS: { key: RequestTab; label: string }[] = [
@@ -400,6 +401,7 @@ function HeaderRow({
         className="header-value code-font"
         placeholder="Value"
         value={h.value}
+        {...varHoverHandlers({ font: '400 12px "JetBrains Mono", monospace' })}
         onChange={(e) => {
           patchHeader(h.id, { value: e.target.value })
           suggest.check(e.target)

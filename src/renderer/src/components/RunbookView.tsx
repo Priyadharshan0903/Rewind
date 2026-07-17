@@ -7,6 +7,7 @@ import { RequestTabs } from '@/components/request/RequestTabs'
 import { TabsBar } from '@/components/request/TabsBar'
 import { ResponsePane } from '@/components/response/ResponsePane'
 import { HistoryPanel } from '@/components/historyPanel/HistoryPanel'
+import { VarPeekCard } from '@/components/common/VarPeek'
 
 const SIDEBAR_DEFAULT_WIDTH = 236
 
@@ -109,6 +110,7 @@ export function RunbookView(): React.JSX.Element {
         )}
       </div>
       {historyPanelOpen && <HistoryPanel />}
+      <VarPeekCard />
     </div>
   )
 }

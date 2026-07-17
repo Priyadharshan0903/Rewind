@@ -4,6 +4,7 @@ import { charWidth, findMatches, normIndex } from '@/lib/find'
 import { useMergedVars } from '@/stores/app'
 import { useUi } from '@/stores/ui'
 import { useVarSuggest } from '@/components/common/VarSuggest'
+import { varHoverHandlers } from '@/components/common/VarPeek'
 import { FindMarksLayer } from '@/components/common/FindBar'
 
 const ED_FONT = '400 12px "JetBrains Mono", monospace'
@@ -186,6 +187,7 @@ export function CodeEditor({ value, onChange, language, placeholder, varSuggest,
           ref={taRef}
           className="ed-input code-font"
           value={value}
+          {...varHoverHandlers({ font: ED_FONT, multiline: { lineHeight: ED_LINE_H, padTop: 12 } })}
           onChange={(e) => {
             onChange(e.target.value)
             if (varSuggest) suggest.check(e.target)
