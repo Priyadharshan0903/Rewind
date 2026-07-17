@@ -1,11 +1,31 @@
-import { app, BrowserWindow, Menu, type MenuItemConstructorOptions } from 'electron'
+import { app, BrowserWindow, Menu, nativeImage, type MenuItemConstructorOptions } from 'electron'
+import { existsSync, renameSync } from 'node:fs'
+import path from 'node:path'
 import { registerIpc } from './ipc/register'
 import { initProfiles } from './services/profiles'
 import { getSettings } from './services/workspaceStore'
 import { chromeBg, createWindow } from './window'
 import { IPC } from '@shared/ipc'
 
-app.setName('Relay')
+app.setName('Rewind')
+
+// The app used to be "Relay" — carry its data directory across the rename.
+// userData is pinned explicitly: setName() alone doesn't re-derive it this early.
+{
+  const appData = app.getPath('appData')
+  const rewindDir = path.join(appData, 'Rewind')
+  const relayDir = path.join(appData, 'Relay')
+  let dataDir = rewindDir
+  if (!existsSync(rewindDir) && existsSync(relayDir)) {
+    try {
+      renameSync(relayDir, rewindDir)
+    } catch {
+      // Move failed (e.g. old app still running) — keep reading from the old location.
+      dataDir = relayDir
+    }
+  }
+  app.setPath('userData', dataDir)
+}
 
 /** Default menu, except ⌘W closes the active request tab (Postman-style) instead of the window. */
 function buildMenu(): Menu {
@@ -46,6 +66,11 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(async () => {
     Menu.setApplicationMenu(buildMenu())
+    // Packaged builds get the icon from the bundle; dev needs it set explicitly.
+    if (!app.isPackaged && app.dock) {
+      const icon = nativeImage.createFromPath(path.join(__dirname, '../../resources/icon.png'))
+      if (!icon.isEmpty()) app.dock.setIcon(icon)
+    }
     await initProfiles()
     const settings = await getSettings()
     registerIpc((next) => {

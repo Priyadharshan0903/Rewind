@@ -1,8 +1,8 @@
-# Relay
+# Rewind
 
 A local-first API client for macOS, built with Electron. Every run is stored on disk as plain JSON — nothing leaves your machine.
 
-Implemented from the claude.ai/design mock **Relay Runbook** (design project `3e859c1b`).
+Implemented from the claude.ai/design mock **Relay Runbook** (design project `3e859c1b`); app name from direction 1c ("Rewind — any API call, replayed") and icon from mark 12a ("Exchange", REQ ⇄ RES) of **App Name & Icon**, restyled to a white tile with the mark in `#5B6AE0`.
 
 ## Features
 
@@ -24,7 +24,7 @@ Implemented from the claude.ai/design mock **Relay Runbook** (design project `3e
 
 ## Data on disk
 
-Everything lives under `~/Library/Application Support/Relay/` as human-readable JSON:
+Everything lives under `~/Library/Application Support/Rewind/` as human-readable JSON (a pre-rename `Relay/` folder is migrated automatically on first launch):
 
 ```
 settings.json                      global: theme, accent, panel state, body-size limit
