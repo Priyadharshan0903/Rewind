@@ -3,7 +3,10 @@ import { Overlay } from '@/components/common/Overlay'
 
 const SHORTCUTS: [string, string][] = [
   ['⌘ ↩', 'Send request'],
+  ['⌘ S', 'Save request changes'],
+  ['⌘ N', 'New request'],
   ['⌘ P', 'Search collection'],
+  ['⌘ E', 'Environments & variables'],
   ['⌘ ,', 'Preferences'],
   ['⌘ /', 'Keyboard shortcuts'],
   ['Esc', 'Close dialogs & menus']

@@ -1,8 +1,9 @@
 import type { KV, RequestNode } from '@shared/types'
 import { newId } from '@shared/id'
-import { useApp, useActiveEnv } from '@/stores/app'
+import { useApp, useActiveEnv, useMergedVars } from '@/stores/app'
 import { useUi, type RequestTab } from '@/stores/ui'
 import { CodeEditor } from '@/components/common/Code'
+import { useVarSuggest } from '@/components/common/VarSuggest'
 
 const TABS: { key: RequestTab; label: string }[] = [
   { key: 'body', label: 'Body' },
@@ -14,8 +15,8 @@ const TABS: { key: RequestTab; label: string }[] = [
 export function RequestTabs({ request }: { request: RequestNode }): React.JSX.Element {
   const tab = useUi((s) => s.tab)
   const setTab = useUi((s) => s.setTab)
-  const env = useActiveEnv()
-  const inheritsAuth = request.auth.mode === 'inherit' && env?.variables.some((v) => v.key === 'token' && v.enabled)
+  const vars = useMergedVars()
+  const inheritsAuth = request.auth.mode === 'inherit' && !!vars.token
   const headerCount = request.headers.filter((h) => h.enabled && h.key.trim()).length + (inheritsAuth ? 1 : 0)
 
   return (
@@ -58,14 +59,15 @@ function BodyTab({ request }: { request: RequestNode }): React.JSX.Element {
       value={request.body.text}
       onChange={(text) => updateRequest({ body: { ...request.body, text } })}
       language="json"
+      varSuggest
     />
   )
 }
 
 function HeadersTab({ request }: { request: RequestNode }): React.JSX.Element {
   const updateRequest = useApp((s) => s.updateRequest)
-  const env = useActiveEnv()
-  const inheritsAuth = request.auth.mode === 'inherit' && env?.variables.some((v) => v.key === 'token' && v.enabled)
+  const vars = useMergedVars()
+  const inheritsAuth = request.auth.mode === 'inherit' && !!vars.token
 
   const patchHeader = (id: string, patch: Partial<KV>): void => {
     updateRequest({ headers: request.headers.map((h) => (h.id === id ? { ...h, ...patch } : h)) })
@@ -79,43 +81,81 @@ function HeadersTab({ request }: { request: RequestNode }): React.JSX.Element {
 
   return (
     <div className="headers-grid">
+      <div className="header-row header-labels">
+        <span />
+        <span className="micro-label">KEY</span>
+        <span className="micro-label">VALUE</span>
+        <span />
+      </div>
       {inheritsAuth && (
         <div className="header-row header-inherited">
           <span />
           <span className="header-key code-font">Authorization</span>
-          <span className="header-value code-font">Bearer ${'{token}'} · from env</span>
+          <span className="header-value code-font">Bearer {'{{token}}'} · from env</span>
           <span />
         </div>
       )}
       {request.headers.map((h) => (
-        <div key={h.id} className={h.enabled ? 'header-row' : 'header-row header-off'}>
-          <input
-            type="checkbox"
-            checked={h.enabled}
-            onChange={(e) => patchHeader(h.id, { enabled: e.target.checked })}
-          />
-          <input
-            className="header-key code-font"
-            placeholder="Header"
-            value={h.key}
-            onChange={(e) => patchHeader(h.id, { key: e.target.value })}
-            spellCheck={false}
-          />
-          <input
-            className="header-value code-font"
-            placeholder="Value"
-            value={h.value}
-            onChange={(e) => patchHeader(h.id, { value: e.target.value })}
-            spellCheck={false}
-          />
-          <button className="icon-btn" title="Remove header" onClick={() => removeHeader(h.id)}>
-            ✕
-          </button>
-        </div>
+        <HeaderRow key={h.id} header={h} patchHeader={patchHeader} removeHeader={removeHeader} />
       ))}
       <button className="link-btn add-header" onClick={addHeader}>
         + Add header
       </button>
+    </div>
+  )
+}
+
+function HeaderRow({
+  header: h,
+  patchHeader,
+  removeHeader
+}: {
+  header: KV
+  patchHeader: (id: string, patch: Partial<KV>) => void
+  removeHeader: (id: string) => void
+}): React.JSX.Element {
+  const vars = useMergedVars()
+  const suggest = useVarSuggest({
+    vars,
+    mode: 'input',
+    font: '400 12px "JetBrains Mono", monospace',
+    padLeft: 0,
+    apply: (text, caret, el) => {
+      patchHeader(h.id, { value: text })
+      requestAnimationFrame(() => {
+        el.selectionStart = el.selectionEnd = caret
+      })
+    }
+  })
+
+  return (
+    <div className={h.enabled ? 'header-row' : 'header-row header-off'}>
+      <input type="checkbox" checked={h.enabled} onChange={(e) => patchHeader(h.id, { enabled: e.target.checked })} />
+      <input
+        className="header-key code-font"
+        placeholder="Header"
+        value={h.key}
+        onChange={(e) => patchHeader(h.id, { key: e.target.value })}
+        spellCheck={false}
+      />
+      <input
+        className="header-value code-font"
+        placeholder="Value"
+        value={h.value}
+        onChange={(e) => {
+          patchHeader(h.id, { value: e.target.value })
+          suggest.check(e.target)
+        }}
+        onKeyDown={(e) => {
+          suggest.onKeyDown(e)
+        }}
+        onBlur={suggest.onBlur}
+        spellCheck={false}
+      />
+      <button className="icon-btn" title="Remove header" onClick={() => removeHeader(h.id)}>
+        ✕
+      </button>
+      {suggest.dropdown}
     </div>
   )
 }
@@ -128,7 +168,10 @@ function maskToken(token: string): string {
 function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
   const updateRequest = useApp((s) => s.updateRequest)
   const env = useActiveEnv()
-  const envToken = env?.variables.find((v) => v.key === 'token' && v.enabled)?.value ?? ''
+  const vars = useMergedVars()
+  const envToken = vars.token ?? ''
+  const fromEnv = env?.variables.some((v) => v.key === 'token' && v.enabled)
+  const tokenSource = fromEnv ? `environment · ${env?.name ?? '—'}` : 'collection variables'
   const mode = request.auth.mode
 
   return (
@@ -148,7 +191,7 @@ function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
         <div className="auth-detail">
           <span className="chip chip-accent">Bearer</span>
           <span className="auth-token code-font">{envToken ? maskToken(envToken) : 'no token variable'}</span>
-          <span className="auth-note">inherited from environment · {env?.name ?? '—'}</span>
+          <span className="auth-note">{envToken ? `inherited from ${tokenSource}` : 'add a {{token}} variable to inherit auth'}</span>
         </div>
       )}
       {mode === 'bearer' && (
@@ -156,7 +199,7 @@ function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
           <span className="chip chip-accent">Bearer</span>
           <input
             className="auth-input code-font"
-            placeholder="token or ${token}"
+            placeholder="token or {{token}}"
             value={request.auth.token ?? ''}
             onChange={(e) => updateRequest({ auth: { ...request.auth, token: e.target.value } })}
             spellCheck={false}

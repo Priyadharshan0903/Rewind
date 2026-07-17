@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { HttpMethod, Run } from '@shared/types'
-import { buildCurl } from '@shared/curl'
 import { useApp } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
 import { useUi } from '@/stores/ui'
 import { findRequest } from '@/lib/tree'
 import { dayLabel, fmtBytes, fmtMs, runTime, timeOfDay, urlPath } from '@/lib/format'
 import { CodeView } from '@/components/common/Code'
+import { CopyMenu } from '@/components/common/CopyMenu'
 
 const METHODS: (HttpMethod | 'all')[] = ['all', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE']
 
@@ -138,11 +138,6 @@ function Snapshot({ run }: { run: Run }): React.JSX.Element {
     setView('runbook')
   }
 
-  const copyCurl = async (): Promise<void> => {
-    await navigator.clipboard.writeText(buildCurl(run.request))
-    toast('Copied as cURL')
-  }
-
   const ok = run.response && run.response.status < 400
 
   return (
@@ -154,9 +149,7 @@ function Snapshot({ run }: { run: Run }): React.JSX.Element {
         <button className="text-btn" onClick={openInRunbook}>
           ↩ Open in Runbook
         </button>
-        <button className="text-btn" onClick={() => void copyCurl()}>
-          ⧉ Copy as cURL
-        </button>
+        <CopyMenu req={run.request} />
       </div>
       <div className="snap-cols">
         <div className="snap-col snap-col-left">

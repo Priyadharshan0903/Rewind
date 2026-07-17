@@ -1,5 +1,7 @@
 import { memo, useEffect, useMemo, useRef } from 'react'
 import { tokenizeLine } from '@/lib/tokenize'
+import { useMergedVars } from '@/stores/app'
+import { useVarSuggest } from '@/components/common/VarSuggest'
 
 export const CodeLine = memo(function CodeLine({
   text,
@@ -38,6 +40,8 @@ interface EditorProps {
   onChange: (value: string) => void
   language: 'json' | 'js'
   placeholder?: string
+  /** Offer {{variable}} autocomplete (request bodies — not scripts). */
+  varSuggest?: boolean
 }
 
 /**
@@ -45,7 +49,7 @@ interface EditorProps {
  * line-number gutter. Font metrics of the textarea and the pre must match
  * exactly (same class), or the caret drifts from the highlight.
  */
-export function CodeEditor({ value, onChange, language, placeholder }: EditorProps): React.JSX.Element {
+export function CodeEditor({ value, onChange, language, placeholder, varSuggest }: EditorProps): React.JSX.Element {
   const taRef = useRef<HTMLTextAreaElement>(null)
   const hlRef = useRef<HTMLPreElement>(null)
   const gutterRef = useRef<HTMLDivElement>(null)
@@ -61,7 +65,25 @@ export function CodeEditor({ value, onChange, language, placeholder }: EditorPro
 
   useEffect(sync, [value])
 
+  const vars = useMergedVars()
+  const suggest = useVarSuggest({
+    vars,
+    mode: 'textarea',
+    font: '400 12px "JetBrains Mono", monospace',
+    lineHeight: 21,
+    padTop: 12,
+    padLeft: 0,
+    apply: (text, caret, el) => {
+      onChange(text)
+      requestAnimationFrame(() => {
+        el.selectionStart = el.selectionEnd = caret
+        sync()
+      })
+    }
+  })
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+    if (varSuggest && suggest.onKeyDown(e)) return
     if (e.key === 'Tab') {
       e.preventDefault()
       const ta = e.currentTarget
@@ -93,8 +115,15 @@ export function CodeEditor({ value, onChange, language, placeholder }: EditorPro
           ref={taRef}
           className="ed-input code-font"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onScroll={sync}
+          onChange={(e) => {
+            onChange(e.target.value)
+            if (varSuggest) suggest.check(e.target)
+          }}
+          onScroll={() => {
+            sync()
+            suggest.onBlur()
+          }}
+          onBlur={suggest.onBlur}
           onKeyDown={onKeyDown}
           spellCheck={false}
           wrap="off"
@@ -102,6 +131,7 @@ export function CodeEditor({ value, onChange, language, placeholder }: EditorPro
           autoCapitalize="off"
           autoCorrect="off"
         />
+        {varSuggest && suggest.dropdown}
       </div>
     </div>
   )

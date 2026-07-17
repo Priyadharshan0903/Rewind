@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Collection, FolderNode, RequestNode, TreeNode } from '@shared/types'
-import { useApp } from '@/stores/app'
-import { useUi } from '@/stores/ui'
+import { buildCurl } from '@shared/codegen'
+import { mergedVars, useApp } from '@/stores/app'
+import { useRuns } from '@/stores/runs'
+import { useUi, type ContextItem } from '@/stores/ui'
+import { resolveForCodegen } from '@/lib/resolve'
 
 function collectRequests(items: TreeNode[]): RequestNode[] {
   const out: RequestNode[] = []
@@ -12,9 +15,80 @@ function collectRequests(items: TreeNode[]): RequestNode[] {
   return out
 }
 
+/** Inline-renamable label; editing is driven by ui.renamingId so context menus can trigger it. */
+function EditableLabel({
+  id,
+  value,
+  onRename,
+  className
+}: {
+  id: string
+  value: string
+  onRename: (name: string) => void
+  className?: string
+}): React.JSX.Element {
+  const editing = useUi((s) => s.renamingId === id)
+  const setRenamingId = useUi((s) => s.setRenamingId)
+  const [draft, setDraft] = useState(value)
+
+  useEffect(() => {
+    if (editing) setDraft(value)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing])
+
+  if (!editing) {
+    return (
+      <span
+        className={className}
+        title="Double-click to rename"
+        onDoubleClick={(e) => {
+          e.stopPropagation()
+          setRenamingId(id)
+        }}
+      >
+        {value}
+      </span>
+    )
+  }
+  const commit = (): void => {
+    setRenamingId(null)
+    if (draft.trim() && draft.trim() !== value) onRename(draft.trim())
+  }
+  return (
+    <input
+      className="rename-input"
+      value={draft}
+      autoFocus
+      spellCheck={false}
+      onFocus={(e) => e.target.select()}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        e.stopPropagation()
+        if (e.key === 'Enter') commit()
+        if (e.key === 'Escape') setRenamingId(null)
+      }}
+    />
+  )
+}
+
+function useContextMenu(): (e: React.MouseEvent, items: ContextItem[]) => void {
+  const openContextMenu = useUi((s) => s.openContextMenu)
+  return (e, items) => {
+    e.preventDefault()
+    e.stopPropagation()
+    openContextMenu(e.clientX, e.clientY, items)
+  }
+}
+
 export function Sidebar(): React.JSX.Element {
   const collections = useApp((s) => s.collections)
+  const addCollection = useApp((s) => s.addCollection)
+  const openEnvEditor = useUi((s) => s.openEnvEditor)
   const toast = useUi((s) => s.toast)
+  const onContext = useContextMenu()
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -24,10 +98,42 @@ export function Sidebar(): React.JSX.Element {
     return () => window.removeEventListener('relay:focus-search', focus)
   }, [])
 
-  const collection = collections[0] as Collection | undefined
+  // Postman-style menu for right-clicking empty sidebar space.
+  const emptyAreaMenu: ContextItem[] = [
+    { label: 'New collection', action: () => addCollection() },
+    {
+      label: 'New environment',
+      action: () => {
+        const id = useApp.getState().addEnvironment()
+        openEnvEditor(id)
+      }
+    },
+    { label: 'Edit variables…', action: () => openEnvEditor() },
+    { sep: true },
+    {
+      label: 'Import workspace…',
+      action: async () => {
+        const result = await window.relay.importBundle()
+        if (result.error) toast(result.error, 'error')
+        else if (result.ok && result.boot) {
+          useApp.getState().applyBoot(result.boot)
+          void useRuns.getState().loadAll()
+          toast('Workspace imported')
+        }
+      }
+    },
+    {
+      label: 'Export workspace…',
+      action: async () => {
+        const result = await window.relay.exportBundle({ includeHistory: true })
+        if (result.path) toast(`Exported to ${result.path}`)
+        else if (result.error) toast(result.error, 'error')
+      }
+    }
+  ]
 
   return (
-    <div className="sidebar">
+    <div className="sidebar" onContextMenu={(e) => onContext(e, emptyAreaMenu)}>
       <div className="sb-search-wrap">
         <div className="sb-search">
           <span className="sb-search-icon">⌕</span>
@@ -47,56 +153,198 @@ export function Sidebar(): React.JSX.Element {
         </div>
       </div>
       <div className="sb-label-row">
-        <span className="micro-label">COLLECTION</span>
-        <span className="version-chip">{collection?.version ?? 'v1'}</span>
+        <span className="micro-label">COLLECTIONS</span>
+        <button className="sb-add" title="New collection" onClick={addCollection}>
+          +
+        </button>
       </div>
       <div className="sb-tree">
-        {collection &&
-          (query.trim() ? (
-            <SearchResults collection={collection} query={query.trim().toLowerCase()} />
-          ) : (
-            collection.items.map((node) => <TreeItem key={node.id} node={node} collectionId={collection.id} />)
-          ))}
+        {query.trim() ? (
+          <SearchResults collections={collections} query={query.trim().toLowerCase()} />
+        ) : (
+          collections.map((c) => <CollectionBlock key={c.id} collection={c} />)
+        )}
+        {!collections.length && <div className="sb-empty">No collections yet — hit + above</div>}
       </div>
       <div className="sb-footer">
-        <button className="import-btn" onClick={() => toast('OpenAPI import is coming soon')}>
-          ⤓ Import OpenAPI
-        </button>
+        <ImportOpenApiButton />
       </div>
     </div>
   )
 }
 
-function SearchResults({ collection, query }: { collection: Collection; query: string }): React.JSX.Element {
+function ImportOpenApiButton(): React.JSX.Element {
+  const toast = useUi((s) => s.toast)
+  return (
+    <button className="import-btn" onClick={() => toast('OpenAPI import is coming soon')}>
+      ⤓ Import OpenAPI
+    </button>
+  )
+}
+
+function SearchResults({ collections, query }: { collections: Collection[]; query: string }): React.JSX.Element {
   const matches = useMemo(
     () =>
-      collectRequests(collection.items).filter(
-        (r) => r.name.toLowerCase().includes(query) || r.url.toLowerCase().includes(query)
+      collections.flatMap((c) =>
+        collectRequests(c.items)
+          .filter((r) => r.name.toLowerCase().includes(query) || r.url.toLowerCase().includes(query))
+          .map((r) => ({ collectionId: c.id, request: r }))
       ),
-    [collection, query]
+    [collections, query]
   )
   if (!matches.length) return <div className="sb-empty">No matching requests</div>
   return (
     <>
-      {matches.map((r) => (
-        <RequestRow key={r.id} request={r} collectionId={collection.id} indent={false} />
+      {matches.map((m) => (
+        <RequestRow key={m.request.id} request={m.request} collectionId={m.collectionId} indent={false} />
       ))}
     </>
   )
 }
 
-function TreeItem({ node, collectionId }: { node: TreeNode; collectionId: string }): React.JSX.Element {
-  if (node.type === 'request') return <RequestRow request={node} collectionId={collectionId} indent />
-  return <FolderRow folder={node} collectionId={collectionId} />
+function CollectionBlock({ collection }: { collection: Collection }): React.JSX.Element {
+  const [open, setOpen] = useState(true)
+  const app = useApp.getState
+  const setRenamingId = useUi((s) => s.setRenamingId)
+  const openCollectionVars = useUi((s) => s.openCollectionVars)
+  const toast = useUi((s) => s.toast)
+  const onContext = useContextMenu()
+
+  const menu: ContextItem[] = [
+    { label: 'Add request', action: () => (setOpen(true), app().addRequest(collection.id, null)) },
+    { label: 'Add folder', action: () => (setOpen(true), app().addFolder(collection.id)) },
+    { sep: true },
+    { label: 'Edit variables', action: () => openCollectionVars(collection.id) },
+    { label: 'Rename', action: () => setRenamingId(collection.id) },
+    { label: 'Duplicate', action: () => app().duplicateCollection(collection.id) },
+    {
+      label: 'Export',
+      action: async () => {
+        const result = await window.relay.exportCollection(collection.id)
+        if (result.path) toast(`Exported to ${result.path}`)
+        else if (result.error) toast(result.error, 'error')
+      }
+    },
+    { sep: true },
+    {
+      label: 'Delete',
+      danger: true,
+      action: () => {
+        if (window.confirm(`Delete collection “${collection.name}” and everything in it?`)) {
+          app().deleteCollection(collection.id)
+        }
+      }
+    }
+  ]
+
+  return (
+    <div className="col-block">
+      <div className="col-row" onClick={() => setOpen((v) => !v)} onContextMenu={(e) => onContext(e, menu)}>
+        <span className="tree-caret">{open ? '▾' : '▸'}</span>
+        <EditableLabel
+          id={collection.id}
+          value={collection.name}
+          onRename={(name) => useApp.getState().renameCollection(collection.id, name)}
+          className="col-name"
+        />
+        <span className="version-chip">{collection.version}</span>
+        <span className="row-actions">
+          <button
+            className="row-action"
+            title="New request"
+            onClick={(e) => {
+              e.stopPropagation()
+              setOpen(true)
+              useApp.getState().addRequest(collection.id, null)
+            }}
+          >
+            +
+          </button>
+          <button
+            className="row-action"
+            title="More options"
+            onClick={(e) => {
+              e.stopPropagation()
+              onContext(e, menu)
+            }}
+          >
+            ⋯
+          </button>
+        </span>
+      </div>
+      {open &&
+        collection.items.map((node) =>
+          node.type === 'request' ? (
+            <RequestRow key={node.id} request={node} collectionId={collection.id} indent />
+          ) : (
+            <FolderRow key={node.id} folder={node} collectionId={collection.id} />
+          )
+        )}
+      {open && collection.items.length === 0 && (
+        <div className="sb-empty sb-empty-indent">Empty — right-click to add a request</div>
+      )}
+    </div>
+  )
 }
 
 function FolderRow({ folder, collectionId }: { folder: FolderNode; collectionId: string }): React.JSX.Element {
   const [open, setOpen] = useState(folder.children.length > 0)
+  const app = useApp.getState
+  const setRenamingId = useUi((s) => s.setRenamingId)
+  const onContext = useContextMenu()
+
+  const menu: ContextItem[] = [
+    { label: 'Add request', action: () => (setOpen(true), app().addRequest(collectionId, folder.id)) },
+    { label: 'Add folder', action: () => (setOpen(true), app().addFolder(collectionId)) },
+    { sep: true },
+    { label: 'Rename', action: () => setRenamingId(folder.id) },
+    { label: 'Duplicate', action: () => app().duplicateNode(collectionId, folder.id) },
+    { sep: true },
+    {
+      label: 'Delete',
+      danger: true,
+      action: () => {
+        const n = folder.children.length
+        if (window.confirm(`Delete folder “${folder.name}”${n ? ` and its ${n} item${n > 1 ? 's' : ''}` : ''}?`)) {
+          app().deleteNode(collectionId, folder.id)
+        }
+      }
+    }
+  ]
+
   return (
     <>
-      <button className="folder-row" onClick={() => setOpen((v) => !v)}>
-        {open ? '▾' : '▸'} {folder.name}
-      </button>
+      <div className="folder-row" onClick={() => setOpen((v) => !v)} onContextMenu={(e) => onContext(e, menu)}>
+        <span className="tree-caret">{open ? '▾' : '▸'}</span>
+        <EditableLabel
+          id={folder.id}
+          value={folder.name}
+          onRename={(name) => useApp.getState().renameFolderNode(collectionId, folder.id, name)}
+        />
+        <span className="row-actions">
+          <button
+            className="row-action"
+            title="New request in folder"
+            onClick={(e) => {
+              e.stopPropagation()
+              setOpen(true)
+              useApp.getState().addRequest(collectionId, folder.id)
+            }}
+          >
+            +
+          </button>
+          <button
+            className="row-action"
+            title="More options"
+            onClick={(e) => {
+              e.stopPropagation()
+              onContext(e, menu)
+            }}
+          >
+            ⋯
+          </button>
+        </span>
+      </div>
       {open &&
         folder.children.map((child) =>
           child.type === 'request' ? (
@@ -120,15 +368,71 @@ function RequestRow({
   indent: boolean
 }): React.JSX.Element {
   const selection = useApp((s) => s.selection)
-  const selectRequest = useApp((s) => s.selectRequest)
+  const dirty = useApp((s) => !!s.drafts[request.id])
+  const setRenamingId = useUi((s) => s.setRenamingId)
+  const toast = useUi((s) => s.toast)
+  const onContext = useContextMenu()
   const active = selection?.requestId === request.id
+
+  const menu: ContextItem[] = [
+    {
+      label: 'Send',
+      action: () => {
+        useApp.getState().selectRequest(collectionId, request.id)
+        void useRuns.getState().send()
+      }
+    },
+    {
+      label: 'Copy as cURL',
+      action: async () => {
+        const state = useApp.getState()
+        const vars = mergedVars(state, collectionId)
+        await navigator.clipboard.writeText(buildCurl(resolveForCodegen(state.drafts[request.id] ?? request, vars)))
+        toast('Copied as cURL')
+      }
+    },
+    { sep: true },
+    { label: 'Rename', action: () => setRenamingId(request.id) },
+    { label: 'Duplicate', action: () => useApp.getState().duplicateNode(collectionId, request.id) },
+    { sep: true },
+    {
+      label: 'Delete',
+      danger: true,
+      action: () => {
+        if (window.confirm(`Delete request “${request.name}”?`)) {
+          useApp.getState().deleteNode(collectionId, request.id)
+        }
+      }
+    }
+  ]
+
   return (
-    <button
+    <div
       className={`req-row ${indent ? 'req-indent' : ''} ${active ? 'req-active' : ''}`}
-      onClick={() => selectRequest(collectionId, request.id)}
+      onClick={() => useApp.getState().selectRequest(collectionId, request.id)}
+      onContextMenu={(e) => onContext(e, menu)}
     >
       <span className={`method method-${request.method.toLowerCase()}`}>{request.method}</span>
-      <span className="req-name">{request.name}</span>
-    </button>
+      <span className="req-name">
+        <EditableLabel
+          id={request.id}
+          value={request.name}
+          onRename={(name) => useApp.getState().renameRequest(collectionId, request.id, name)}
+        />
+      </span>
+      {dirty && <span className="dirty-dot" title="Unsaved changes" />}
+      <span className="row-actions">
+        <button
+          className="row-action"
+          title="More options"
+          onClick={(e) => {
+            e.stopPropagation()
+            onContext(e, menu)
+          }}
+        >
+          ⋯
+        </button>
+      </span>
+    </div>
   )
 }

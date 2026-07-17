@@ -2,8 +2,7 @@ import { create } from 'zustand'
 import type { HttpMethod, Run, RunSummary } from '@shared/types'
 import { toSummary } from '@shared/types'
 import { newId } from '@shared/id'
-import { useApp } from './app'
-import { findRequest } from '@/lib/tree'
+import { effectiveRequest, useApp } from './app'
 
 interface RunsState {
   // Runbook right panel (per selected request)
@@ -65,8 +64,8 @@ export const useRuns = create<RunsState>((set, get) => ({
     const app = useApp.getState()
     const selection = app.selection
     if (!selection || get().sending) return
-    const collection = app.collections.find((c) => c.id === selection.collectionId)
-    const request = collection ? findRequest(collection.items, selection.requestId) : null
+    // Send what the user sees — the unsaved draft if one exists (Postman behavior).
+    const request = effectiveRequest(app, selection.collectionId, selection.requestId)
     if (!request) return
     const sendId = newId()
     set({ sending: true, sendId, sendError: null })

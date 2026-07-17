@@ -9,7 +9,12 @@ import { ShareModal } from '@/components/modals/ShareModal'
 import { ProfileMenu } from '@/components/modals/ProfileMenu'
 import { PreferencesModal } from '@/components/modals/PreferencesModal'
 import { ShortcutsModal } from '@/components/modals/ShortcutsModal'
+import { EnvironmentsModal } from '@/components/modals/EnvironmentsModal'
+import { CollectionVarsModal } from '@/components/modals/CollectionVarsModal'
+import { NewProfileModal } from '@/components/modals/NewProfileModal'
+import { findParentFolderId } from '@/lib/tree'
 import { Toasts } from '@/components/common/Toasts'
+import { ContextMenu } from '@/components/common/ContextMenu'
 
 export default function App(): React.JSX.Element {
   const booted = useApp((s) => s.booted)
@@ -21,6 +26,9 @@ export default function App(): React.JSX.Element {
   const profileOpen = useUi((s) => s.profileOpen)
   const prefsOpen = useUi((s) => s.prefsOpen)
   const shortcutsOpen = useUi((s) => s.shortcutsOpen)
+  const envEditorOpen = useUi((s) => s.envEditorOpen)
+  const collectionVarsId = useUi((s) => s.collectionVarsId)
+  const newProfileOpen = useUi((s) => s.newProfileOpen)
 
   useEffect(() => {
     void hydrate()
@@ -61,6 +69,26 @@ export default function App(): React.JSX.Element {
           e.preventDefault()
           ui.openShortcuts()
           break
+        case 'e':
+          e.preventDefault()
+          ui.openEnvEditor()
+          break
+        case 's':
+          e.preventDefault()
+          useApp.getState().saveDraft()
+          break
+        case 'n': {
+          e.preventDefault()
+          const app = useApp.getState()
+          const collectionId = app.selection?.collectionId ?? app.collections[0]?.id
+          if (!collectionId) break
+          const collection = app.collections.find((c) => c.id === collectionId)
+          const folderId =
+            app.selection && collection ? findParentFolderId(collection.items, app.selection.requestId) : null
+          ui.setView('runbook')
+          app.addRequest(collectionId, folderId)
+          break
+        }
       }
     }
     window.addEventListener('keydown', onKey)
@@ -77,6 +105,10 @@ export default function App(): React.JSX.Element {
       {profileOpen && <ProfileMenu />}
       {prefsOpen && <PreferencesModal />}
       {shortcutsOpen && <ShortcutsModal />}
+      {envEditorOpen && <EnvironmentsModal />}
+      {collectionVarsId && <CollectionVarsModal />}
+      {newProfileOpen && <NewProfileModal />}
+      <ContextMenu />
       <Toasts />
     </div>
   )

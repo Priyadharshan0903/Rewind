@@ -73,8 +73,8 @@ export function buildSeed(): SeedData {
     id: 'req-create-charge',
     name: 'Create charge',
     method: 'POST',
-    url: '${baseUrl}/v1/charges',
-    headers: [kv('Content-Type', 'application/json'), kv('Idempotency-Key', '${$uuid}')],
+    url: '{{baseUrl}}/v1/charges',
+    headers: [kv('Content-Type', 'application/json'), kv('Idempotency-Key', '{{$uuid}}')],
     body: {
       mode: 'json',
       text: [
@@ -105,7 +105,7 @@ export function buildSeed(): SeedData {
             id: 'req-list-charges',
             name: 'List charges',
             method: 'GET',
-            url: '${baseUrl}/v1/charges?limit=20',
+            url: '{{baseUrl}}/v1/charges?limit=20',
             headers: [],
             body: { mode: 'none', text: '' }
           }),
@@ -113,7 +113,7 @@ export function buildSeed(): SeedData {
             id: 'req-retrieve-charge',
             name: 'Retrieve charge',
             method: 'GET',
-            url: '${baseUrl}/v1/charges/${chargeId}',
+            url: '{{baseUrl}}/v1/charges/{{chargeId}}',
             headers: [],
             body: { mode: 'none', text: '' }
           }),
@@ -121,8 +121,8 @@ export function buildSeed(): SeedData {
             id: 'req-capture-charge',
             name: 'Capture charge',
             method: 'POST',
-            url: '${baseUrl}/v1/charges/${chargeId}/capture',
-            headers: [kv('Content-Type', 'application/json'), kv('Idempotency-Key', '${$uuid}')],
+            url: '{{baseUrl}}/v1/charges/{{chargeId}}/capture',
+            headers: [kv('Content-Type', 'application/json'), kv('Idempotency-Key', '{{$uuid}}')],
             body: { mode: 'json', text: '{\n  "amount": 2500\n}' }
           })
         ]
@@ -136,7 +136,7 @@ export function buildSeed(): SeedData {
             id: 'req-create-customer',
             name: 'Create customer',
             method: 'POST',
-            url: '${baseUrl}/v1/customers',
+            url: '{{baseUrl}}/v1/customers',
             headers: [kv('Content-Type', 'application/json')],
             body: { mode: 'json', text: '{\n  "email": "dana@acme.dev",\n  "name": "Dana R."\n}' }
           }),
@@ -144,7 +144,7 @@ export function buildSeed(): SeedData {
             id: 'req-list-customers',
             name: 'List customers',
             method: 'GET',
-            url: '${baseUrl}/v1/customers?limit=20',
+            url: '{{baseUrl}}/v1/customers?limit=20',
             headers: [],
             body: { mode: 'none', text: '' }
           })

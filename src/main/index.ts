@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import { registerIpc } from './ipc/register'
+import { initProfiles } from './services/profiles'
 import { getSettings } from './services/workspaceStore'
 import { chromeBg, createWindow } from './window'
 
@@ -17,6 +18,7 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.whenReady().then(async () => {
+    await initProfiles()
     const settings = await getSettings()
     registerIpc((next) => {
       for (const win of BrowserWindow.getAllWindows()) win.setBackgroundColor(chromeBg(next.theme))

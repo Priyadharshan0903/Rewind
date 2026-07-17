@@ -1,4 +1,9 @@
-export const VAR_RE = /\$\{(\$?[A-Za-z_][\w-]*)\}/g
+// Postman-style {{name}} is the canonical syntax; legacy ${name} still resolves.
+export const VAR_RE = /\{\{\s*(\$?[A-Za-z_][\w-]*)\s*\}\}|\$\{(\$?[A-Za-z_][\w-]*)\}/g
+
+export function varName(match: RegExpExecArray | string[]): string {
+  return (match[1] ?? match[2]) as string
+}
 
 export interface InterpolateResult {
   text: string
@@ -6,9 +11,9 @@ export interface InterpolateResult {
 }
 
 /**
- * Resolve `${name}` from vars, plus dynamic built-ins `${$uuid}` / `${$timestamp}`.
- * With `dynamic: false` (renderer preview) built-ins are left literal so they
- * evaluate fresh at send time in the main process.
+ * Resolve `{{name}}` (or legacy `${name}`) from vars, plus dynamic built-ins
+ * `{{$uuid}}` / `{{$timestamp}}`. With `dynamic: false` (renderer preview)
+ * built-ins are left literal so they evaluate fresh at send time in main.
  */
 export function interpolate(
   text: string,
@@ -16,7 +21,8 @@ export function interpolate(
   opts: { dynamic: boolean } = { dynamic: true }
 ): InterpolateResult {
   const unresolved: string[] = []
-  const out = text.replace(VAR_RE, (whole, name: string) => {
+  const out = text.replace(VAR_RE, (whole, curly: string | undefined, legacy: string | undefined) => {
+    const name = (curly ?? legacy)!
     if (name.startsWith('$')) {
       if (!opts.dynamic) return whole
       if (name === '$uuid') return globalThis.crypto.randomUUID()

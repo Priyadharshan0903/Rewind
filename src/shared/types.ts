@@ -85,6 +85,8 @@ export interface Collection {
   name: string
   version: string
   items: TreeNode[]
+  /** Collection-level variables; environment variables win on name collision. */
+  variables?: KV[]
 }
 
 export interface RunRequest {
@@ -176,6 +178,17 @@ export interface BootPayload {
   settings: Settings
   environments: Environment[]
   collections: Collection[]
+}
+
+export interface ProfileInfo {
+  id: string
+  name: string
+  createdAt: number
+}
+
+export interface ProfilesState {
+  activeId: string
+  profiles: ProfileInfo[]
 }
 
 export interface SendPayload {

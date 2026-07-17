@@ -3,7 +3,6 @@ import { useApp, useActiveEnv } from '@/stores/app'
 import { useUi } from '@/stores/ui'
 
 export function Titlebar(): React.JSX.Element {
-  const workspace = useApp((s) => s.workspace)
   const view = useUi((s) => s.view)
   const setView = useUi((s) => s.setView)
   const toggleShare = useUi((s) => s.toggleShare)
@@ -12,9 +11,6 @@ export function Titlebar(): React.JSX.Element {
   return (
     <div className="titlebar">
       <div className="traffic-space" />
-      <span className="tb-app">Relay</span>
-      <span className="tb-sep">/</span>
-      <span className="tb-workspace">{workspace?.name ?? ''}</span>
       <div className="seg no-drag">
         <button className={view === 'runbook' ? 'seg-btn seg-active' : 'seg-btn'} onClick={() => setView('runbook')}>
           Runbook
@@ -28,11 +24,21 @@ export function Titlebar(): React.JSX.Element {
       <button className="btn-accent no-drag" onClick={toggleShare}>
         ⇪ Share
       </button>
-      <button className="profile-chip no-drag" onClick={toggleProfile}>
-        <span className="profile-label">you</span>
-        <span className="avatar">Y</span>
-      </button>
+      <ProfileChip onClick={toggleProfile} />
     </div>
+  )
+}
+
+function ProfileChip({ onClick }: { onClick: () => void }): React.JSX.Element {
+  const profiles = useApp((s) => s.profiles)
+  const activeProfileId = useApp((s) => s.activeProfileId)
+  const active = profiles.find((p) => p.id === activeProfileId)
+  const name = active?.name ?? 'you'
+  return (
+    <button className="profile-chip no-drag" onClick={onClick} title={`Profile: ${name}`}>
+      <span className="profile-label">{name}</span>
+      <span className="avatar">{name[0]?.toUpperCase() ?? 'Y'}</span>
+    </button>
   )
 }
 
@@ -40,6 +46,7 @@ function EnvPill(): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const environments = useApp((s) => s.environments)
   const setActiveEnv = useApp((s) => s.setActiveEnv)
+  const openEnvEditor = useUi((s) => s.openEnvEditor)
   const env = useActiveEnv()
 
   return (
@@ -67,6 +74,16 @@ function EnvPill(): React.JSX.Element {
                 {e.id === env?.id && <span className="menu-check">✓</span>}
               </button>
             ))}
+            <div className="menu-sep" />
+            <button
+              className="menu-item menu-accent"
+              onClick={() => {
+                setOpen(false)
+                openEnvEditor()
+              }}
+            >
+              ⚙ Edit variables…<span className="menu-kbd">⌘ E</span>
+            </button>
           </div>
         </>
       )}

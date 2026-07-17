@@ -1,5 +1,7 @@
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { promises as fs } from 'node:fs'
+import { files as filesPaths } from '../services/paths'
+import { createProfile, deleteProfile, listProfiles, renameProfile, switchProfile } from '../services/profiles'
 import { IPC } from '@shared/ipc'
 import type {
   Collection,
@@ -64,6 +66,30 @@ export function registerIpc(onThemeChange: (settings: Settings) => void): void {
 
   ipcMain.handle(IPC.collectionSave, (_e, collection: Collection) => saveCollection(collection))
 
+  ipcMain.handle(IPC.collectionDelete, (_e, collectionId: string) =>
+    fs.rm(filesPaths.collection(collectionId), { force: true })
+  )
+
+  ipcMain.handle(IPC.collectionExport, async (e, collectionId: string): Promise<ExportResult> => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const collections = await loadCollections()
+    const collection = collections.find((c) => c.id === collectionId)
+    if (!collection) return { error: 'Collection not found' }
+    const safeName = collection.name.replace(/[^\w.-]+/g, '-').toLowerCase()
+    const { canceled, filePath } = await dialog.showSaveDialog(win!, {
+      title: 'Export collection',
+      defaultPath: `${safeName}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    })
+    if (canceled || !filePath) return { canceled: true }
+    try {
+      await fs.writeFile(filePath, JSON.stringify(collection, null, 2) + '\n', 'utf8')
+      return { path: filePath }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
   ipcMain.handle(IPC.envSave, (_e, envs: Environment[]) => saveEnvironments(envs))
 
   ipcMain.handle(IPC.envSetActive, async (_e, envId: string) => {
@@ -72,9 +98,16 @@ export function registerIpc(onThemeChange: (settings: Settings) => void): void {
   })
 
   ipcMain.handle(IPC.httpSend, async (_e, payload: SendPayload): Promise<Run> => {
-    const [workspace, environments, settings] = await Promise.all([getWorkspace(), getEnvironments(), getSettings()])
+    const [workspace, environments, settings, collections] = await Promise.all([
+      getWorkspace(),
+      getEnvironments(),
+      getSettings(),
+      loadCollections()
+    ])
     const env = environments.find((x) => x.id === workspace.activeEnvironmentId) ?? environments[0]
-    const vars = varsFromEnv(env?.variables ?? [])
+    const collection = collections.find((c) => c.id === payload.collectionId)
+    // Postman precedence: environment overrides collection variables.
+    const vars = { ...varsFromEnv(collection?.variables ?? []), ...varsFromEnv(env?.variables ?? []) }
     const req = payload.request
 
     const url = interpolate(req.url, vars).text
@@ -243,4 +276,20 @@ export function registerIpc(onThemeChange: (settings: Settings) => void): void {
     if (/^https?:\/\//i.test(url)) return shell.openExternal(url)
     return undefined
   })
+
+  ipcMain.handle(IPC.profilesList, () => listProfiles())
+
+  ipcMain.handle(IPC.profilesCreate, async (_e, name: string) => {
+    const state = await createProfile(name.trim() || 'New profile')
+    return { ...state, boot: await loadBoot() }
+  })
+
+  ipcMain.handle(IPC.profilesSwitch, async (_e, id: string) => {
+    const state = await switchProfile(id)
+    return { ...state, boot: await loadBoot() }
+  })
+
+  ipcMain.handle(IPC.profilesRename, (_e, id: string, name: string) => renameProfile(id, name))
+
+  ipcMain.handle(IPC.profilesDelete, (_e, id: string) => deleteProfile(id))
 }

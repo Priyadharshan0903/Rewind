@@ -3,6 +3,8 @@ export const IPC = {
   workspaceRename: 'workspace:rename',
   settingsSave: 'settings:save',
   collectionSave: 'collection:save',
+  collectionDelete: 'collection:delete',
+  collectionExport: 'collection:export',
   envSave: 'env:save',
   envSetActive: 'env:setActive',
   httpSend: 'http:send',
@@ -13,5 +15,10 @@ export const IPC = {
   runsAppended: 'runs:appended',
   transferExport: 'transfer:export',
   transferImport: 'transfer:import',
+  profilesList: 'profiles:list',
+  profilesCreate: 'profiles:create',
+  profilesSwitch: 'profiles:switch',
+  profilesRename: 'profiles:rename',
+  profilesDelete: 'profiles:delete',
   shellOpenExternal: 'shell:openExternal'
 } as const

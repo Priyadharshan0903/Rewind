@@ -9,6 +9,19 @@ interface Toast {
   kind: 'info' | 'error'
 }
 
+export interface ContextItem {
+  label?: string
+  danger?: boolean
+  sep?: boolean
+  action?: () => void
+}
+
+export interface ContextMenuState {
+  x: number
+  y: number
+  items: ContextItem[]
+}
+
 interface UiState {
   view: View
   tab: RequestTab
@@ -16,7 +29,16 @@ interface UiState {
   profileOpen: boolean
   prefsOpen: boolean
   shortcutsOpen: boolean
+  envEditorOpen: boolean
+  /** environment to preselect when the editor opens */
+  envEditorSelectId: string | null
+  /** collection whose variables modal is open */
+  collectionVarsId: string | null
+  newProfileOpen: boolean
   toasts: Toast[]
+  contextMenu: ContextMenuState | null
+  /** id of the sidebar node currently being renamed inline */
+  renamingId: string | null
 
   setView: (view: View) => void
   setTab: (tab: RequestTab) => void
@@ -24,6 +46,12 @@ interface UiState {
   toggleProfile: () => void
   openPrefs: () => void
   openShortcuts: () => void
+  openEnvEditor: (selectId?: string) => void
+  openCollectionVars: (collectionId: string) => void
+  openNewProfile: () => void
+  openContextMenu: (x: number, y: number, items: ContextItem[]) => void
+  closeContextMenu: () => void
+  setRenamingId: (id: string | null) => void
   closeOverlays: () => boolean
   toast: (text: string, kind?: 'info' | 'error') => void
   dismissToast: (id: number) => void
@@ -38,7 +66,13 @@ export const useUi = create<UiState>((set, get) => ({
   profileOpen: false,
   prefsOpen: false,
   shortcutsOpen: false,
+  envEditorOpen: false,
+  envEditorSelectId: null,
+  collectionVarsId: null,
+  newProfileOpen: false,
   toasts: [],
+  contextMenu: null,
+  renamingId: null,
 
   setView: (view) => set({ view }),
   setTab: (tab) => set({ tab }),
@@ -46,11 +80,38 @@ export const useUi = create<UiState>((set, get) => ({
   toggleProfile: () => set((s) => ({ profileOpen: !s.profileOpen, shareOpen: false })),
   openPrefs: () => set({ prefsOpen: true, profileOpen: false, shareOpen: false }),
   openShortcuts: () => set({ shortcutsOpen: true, profileOpen: false, shareOpen: false }),
+  openEnvEditor: (selectId) =>
+    set({ envEditorOpen: true, envEditorSelectId: selectId ?? null, profileOpen: false, shareOpen: false }),
+  openCollectionVars: (collectionId) =>
+    set({ collectionVarsId: collectionId, profileOpen: false, shareOpen: false }),
+  openNewProfile: () => set({ newProfileOpen: true, profileOpen: false, shareOpen: false }),
+  openContextMenu: (x, y, items) => set({ contextMenu: { x, y, items } }),
+  closeContextMenu: () => set({ contextMenu: null }),
+  setRenamingId: (renamingId) => set({ renamingId }),
 
   closeOverlays: () => {
     const s = get()
-    const any = s.shareOpen || s.profileOpen || s.prefsOpen || s.shortcutsOpen
-    if (any) set({ shareOpen: false, profileOpen: false, prefsOpen: false, shortcutsOpen: false })
+    const any =
+      s.shareOpen ||
+      s.profileOpen ||
+      s.prefsOpen ||
+      s.shortcutsOpen ||
+      s.envEditorOpen ||
+      !!s.collectionVarsId ||
+      s.newProfileOpen ||
+      !!s.contextMenu
+    if (any) {
+      set({
+        shareOpen: false,
+        profileOpen: false,
+        prefsOpen: false,
+        shortcutsOpen: false,
+        envEditorOpen: false,
+        collectionVarsId: null,
+        newProfileOpen: false,
+        contextMenu: null
+      })
+    }
     return any
   },
 

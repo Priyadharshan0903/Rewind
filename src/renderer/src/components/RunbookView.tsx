@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useApp, useSelectedRequest } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
 import { Sidebar } from '@/components/sidebar/Sidebar'
-import { UrlRow } from '@/components/request/UrlBar'
+import { RequestTitle, UrlRow } from '@/components/request/UrlBar'
 import { RequestTabs } from '@/components/request/RequestTabs'
 import { ResponsePane } from '@/components/response/ResponsePane'
 import { HistoryPanel } from '@/components/historyPanel/HistoryPanel'
@@ -23,9 +23,10 @@ export function RunbookView(): React.JSX.Element {
       <div className="center-pane">
         {selected ? (
           <>
+            <RequestTitle request={selected.request} collection={selected.collection} />
             <UrlRow request={selected.request} />
             <RequestTabs request={selected.request} />
-            <ResponsePane />
+            <ResponsePane request={selected.request} />
           </>
         ) : (
           <div className="center-empty">Select a request from the collection</div>

@@ -1,24 +1,26 @@
-import { buildCurl } from '@shared/curl'
-import { useApp } from '@/stores/app'
+import type { RequestNode } from '@shared/types'
+import { useApp, useMergedVars } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
 import { useUi } from '@/stores/ui'
 import { fmtBytes, fmtMs } from '@/lib/format'
+import { resolveForCodegen } from '@/lib/resolve'
 import { CodeView } from '@/components/common/Code'
+import { CopyMenu } from '@/components/common/CopyMenu'
 
-export function ResponsePane(): React.JSX.Element {
+export function ResponsePane({ request }: { request: RequestNode }): React.JSX.Element {
   const run = useRuns((s) => s.currentRun)
   const sending = useRuns((s) => s.sending)
   const sendError = useRuns((s) => s.sendError)
+  const send = useRuns((s) => s.send)
   const replaceCollection = useApp((s) => s.replaceCollection)
   const patchSettings = useApp((s) => s.patchSettings)
   const historyPanelOpen = useApp((s) => s.settings.historyPanelOpen)
+  const vars = useMergedVars()
   const toast = useUi((s) => s.toast)
 
-  const copyCurl = async (): Promise<void> => {
-    if (!run) return
-    await navigator.clipboard.writeText(buildCurl(run.request))
-    toast('Copied as cURL')
-  }
+  // Snippets always reflect the request as currently edited, resolved
+  // against collection + environment variables (not a stale stored run).
+  const codegenReq = resolveForCodegen(request, vars)
 
   const saveExample = async (): Promise<void> => {
     if (!run) return
@@ -68,6 +70,11 @@ export function ResponsePane(): React.JSX.Element {
                 : `✓ ${run.script.assertions.length || 'script'} ok`}
           </span>
         )}
+        {run?.error && !sending && (
+          <button className="text-btn retry-btn" onClick={() => void send()}>
+            ↻ Retry
+          </button>
+        )}
         <div className="flex-spacer" />
         <button
           className="text-btn"
@@ -76,9 +83,7 @@ export function ResponsePane(): React.JSX.Element {
         >
           ◨
         </button>
-        <button className="text-btn" onClick={() => void copyCurl()} disabled={!run}>
-          ⧉ Copy as cURL
-        </button>
+        <CopyMenu req={codegenReq} />
         <button className="text-btn" onClick={() => void saveExample()} disabled={!run?.response}>
           ◇ Save example
         </button>
