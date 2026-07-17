@@ -49,6 +49,11 @@ const api = {
     const listener = (_e: unknown, summary: RunSummary): void => cb(summary)
     ipcRenderer.on(IPC.runsAppended, listener)
     return () => ipcRenderer.removeListener(IPC.runsAppended, listener)
+  },
+  onCloseActiveTab: (cb: () => void): (() => void) => {
+    const listener = (): void => cb()
+    ipcRenderer.on(IPC.tabsCloseActive, listener)
+    return () => ipcRenderer.removeListener(IPC.tabsCloseActive, listener)
   }
 }
 

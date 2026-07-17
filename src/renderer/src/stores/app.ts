@@ -40,6 +40,8 @@ interface AppState {
   environments: Environment[]
   collections: Collection[]
   selection: Selection | null
+  /** Postman-style open request tabs; selection is always one of these (or null). */
+  openTabs: Selection[]
   /** Unsaved edits per request id — nothing hits disk until saveDraft(). */
   drafts: Record<string, RequestNode>
   profiles: ProfileInfo[]
@@ -53,6 +55,7 @@ interface AppState {
   patchSettings: (patch: Partial<Settings>) => void
   setActiveEnv: (envId: string) => void
   selectRequest: (collectionId: string, requestId: string) => void
+  closeTab: (requestId: string) => void
   updateRequest: (patch: Partial<RequestNode>) => void
   saveDraft: () => void
   discardDraft: () => void
@@ -110,6 +113,7 @@ export const useApp = create<AppState>((set, get) => ({
   environments: [],
   collections: [],
   selection: null,
+  openTabs: [],
   drafts: {},
   profiles: [],
   activeProfileId: '',
@@ -123,17 +127,39 @@ export const useApp = create<AppState>((set, get) => ({
   setProfilesState: (state) => set({ profiles: state.profiles, activeProfileId: state.activeId }),
 
   applyBoot: (boot) => {
-    const first = boot.collections[0]
-    const req = first ? firstRequest(first.items) : null
+    // Restore the tab set for this workspace; a request id is only valid with its current collection.
+    const owner = new Map<string, string>()
+    for (const c of boot.collections) for (const id of collectRequestIds(c.items)) owner.set(id, c.id)
+    let openTabs: Selection[] = []
+    let activeId: string | null = null
+    const stored = readStoredTabs(boot.workspace.id)
+    if (stored) {
+      openTabs = stored.tabs
+        .filter((t) => owner.has(t.requestId))
+        .map((t) => ({ collectionId: owner.get(t.requestId)!, requestId: t.requestId }))
+      activeId = stored.active
+    }
+    let selection = openTabs.find((t) => t.requestId === activeId) ?? openTabs[0] ?? null
+    // First boot of a workspace (nothing stored): open its first request, like before.
+    if (!selection && !stored) {
+      const first = boot.collections[0]
+      const req = first ? firstRequest(first.items) : null
+      if (first && req) {
+        selection = { collectionId: first.id, requestId: req.id }
+        openTabs = [selection]
+      }
+    }
     set({
       booted: true,
       workspace: boot.workspace,
       settings: boot.settings,
       environments: boot.environments,
       collections: boot.collections,
-      selection: first && req ? { collectionId: first.id, requestId: req.id } : null,
+      selection,
+      openTabs,
       drafts: {}
     })
+    persistTabs(get)
   },
 
   setTheme: (theme) => get().patchSettings({ theme }),
@@ -152,7 +178,27 @@ export const useApp = create<AppState>((set, get) => ({
     void window.relay.setActiveEnv(envId)
   },
 
-  selectRequest: (collectionId, requestId) => set({ selection: { collectionId, requestId } }),
+  selectRequest: (collectionId, requestId) => {
+    const { openTabs } = get()
+    const tabs = openTabs.some((t) => t.requestId === requestId)
+      ? openTabs
+      : [...openTabs, { collectionId, requestId }]
+    set({ selection: { collectionId, requestId }, openTabs: tabs })
+    persistTabs(get)
+  },
+
+  closeTab: (requestId) => {
+    const { openTabs, selection } = get()
+    const idx = openTabs.findIndex((t) => t.requestId === requestId)
+    if (idx === -1) return
+    const tabs = openTabs.filter((t) => t.requestId !== requestId)
+    let next = selection
+    if (selection?.requestId === requestId) {
+      next = tabs[Math.min(idx, tabs.length - 1)] ?? null
+    }
+    set({ openTabs: tabs, selection: next })
+    persistTabs(get)
+  },
 
   // Edits accumulate in a draft (Postman-style); disk is untouched until Save.
   updateRequest: (patch) => {
@@ -235,7 +281,7 @@ export const useApp = create<AppState>((set, get) => ({
   adoptCollection: (collection) => {
     set({ collections: [...get().collections.filter((c) => c.id !== collection.id), collection] })
     const first = firstRequest(collection.items)
-    if (first) set({ selection: { collectionId: collection.id, requestId: first.id } })
+    if (first) get().selectRequest(collection.id, first.id)
   },
 
   renameCollection: (collectionId, name) => mutateCollection(collectionId, (c) => ({ ...c, name }), set, get),
@@ -288,20 +334,13 @@ export const useApp = create<AppState>((set, get) => ({
       examples: []
     }
     mutateCollection(collectionId, (c) => ({ ...c, items: insertNode(c.items, folderId, request) }), set, get)
-    set({ selection: { collectionId, requestId: request.id } })
+    get().selectRequest(collectionId, request.id)
   },
 
   deleteNode: (collectionId, nodeId) => {
     mutateCollection(collectionId, (c) => ({ ...c, items: removeNode(c.items, nodeId) }), set, get)
     pruneDrafts(set, get)
-    const { selection, collections } = get()
-    if (selection?.collectionId === collectionId) {
-      const collection = collections.find((c) => c.id === collectionId)
-      if (!collection || !findRequest(collection.items, selection.requestId)) {
-        const fallback = collection ? firstRequest(collection.items) : null
-        set({ selection: fallback ? { collectionId, requestId: fallback.id } : null })
-      }
-    }
+    pruneTabs(set, get)
   },
 
   duplicateNode: (collectionId, nodeId) => {
@@ -316,7 +355,7 @@ export const useApp = create<AppState>((set, get) => ({
       set,
       get
     )
-    if (createdId) set({ selection: { collectionId, requestId: createdId } })
+    if (createdId) get().selectRequest(collectionId, createdId)
   },
 
   duplicateCollection: (collectionId) => {
@@ -336,11 +375,7 @@ export const useApp = create<AppState>((set, get) => ({
     const next = get().collections.filter((c) => c.id !== collectionId)
     set({ collections: next })
     pruneDrafts(set, get)
-    if (get().selection?.collectionId === collectionId) {
-      const first = next[0]
-      const req = first ? firstRequest(first.items) : null
-      set({ selection: first && req ? { collectionId: first.id, requestId: req.id } : null })
-    }
+    pruneTabs(set, get)
     void window.relay.deleteCollection(collectionId)
   }
 }))
@@ -363,6 +398,55 @@ function pruneDrafts(set: SetApp, get: GetApp): void {
   const alive = new Set(collections.flatMap((c) => collectRequestIds(c.items)))
   const next = Object.fromEntries(Object.entries(drafts).filter(([id]) => alive.has(id)))
   if (Object.keys(next).length !== Object.keys(drafts).length) set({ drafts: next })
+}
+
+/** Drop tabs whose request no longer exists; move the selection to the nearest surviving tab. */
+function pruneTabs(set: SetApp, get: GetApp): void {
+  const { openTabs, selection, collections } = get()
+  const alive = new Set(collections.flatMap((c) => collectRequestIds(c.items)))
+  const tabs = openTabs.filter((t) => alive.has(t.requestId))
+  const selectionAlive = !selection || alive.has(selection.requestId)
+  if (tabs.length === openTabs.length && selectionAlive) return
+  let next = selectionAlive ? selection : null
+  if (!next && selection) {
+    const idx = openTabs.findIndex((t) => t.requestId === selection.requestId)
+    next = tabs[Math.min(Math.max(idx, 0), tabs.length - 1)] ?? null
+  }
+  set({ openTabs: tabs, selection: next })
+  persistTabs(get)
+}
+
+interface StoredTabs {
+  tabs: Selection[]
+  active: string | null
+}
+
+function tabsKey(workspaceId: string): string {
+  return `relay:tabs:${workspaceId}`
+}
+
+function readStoredTabs(workspaceId: string): StoredTabs | null {
+  try {
+    const raw = localStorage.getItem(tabsKey(workspaceId))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<StoredTabs>
+    return { tabs: Array.isArray(parsed.tabs) ? parsed.tabs : [], active: parsed.active ?? null }
+  } catch {
+    return null
+  }
+}
+
+function persistTabs(get: GetApp): void {
+  const { workspace, openTabs, selection } = get()
+  if (!workspace) return
+  try {
+    localStorage.setItem(
+      tabsKey(workspace.id),
+      JSON.stringify({ tabs: openTabs, active: selection?.requestId ?? null } satisfies StoredTabs)
+    )
+  } catch {
+    /* storage full or unavailable — tabs just won't persist */
+  }
 }
 
 /** The request as the user sees it: draft if present, else the saved node. */

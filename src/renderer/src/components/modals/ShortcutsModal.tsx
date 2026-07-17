@@ -8,6 +8,7 @@ const SHORTCUTS: [string, string][] = [
   ['⌘ P', 'Search collection'],
   ['⌘ F', 'Find in request / response'],
   ['⌘ E', 'Environments & variables'],
+  ['⌘ W', 'Close tab'],
   ['⌘ B', 'Toggle sidebar'],
   ['⌘ J', 'Toggle response pane'],
   ['⌘ ⌥ B', 'Toggle history panel'],

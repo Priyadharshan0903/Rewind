@@ -4,6 +4,7 @@ import { useRuns } from '@/stores/runs'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { RequestTitle, UrlRow } from '@/components/request/UrlBar'
 import { RequestTabs } from '@/components/request/RequestTabs'
+import { TabsBar } from '@/components/request/TabsBar'
 import { ResponsePane } from '@/components/response/ResponsePane'
 import { HistoryPanel } from '@/components/historyPanel/HistoryPanel'
 
@@ -85,6 +86,7 @@ export function RunbookView(): React.JSX.Element {
         </>
       )}
       <div className="center-pane">
+        <TabsBar />
         {selected ? (
           <>
             <RequestTitle request={selected.request} collection={selected.collection} />
@@ -93,7 +95,17 @@ export function RunbookView(): React.JSX.Element {
             {responsePaneOpen && <ResponsePane request={selected.request} />}
           </>
         ) : (
-          <div className="center-empty">Select a request from the collection</div>
+          <div className="center-empty">
+            <div className="empty-state">
+              <div className="empty-glyph">⌁</div>
+              <div className="empty-title">No request open</div>
+              <div className="empty-sub">Open a request from the sidebar, or create a new one.</div>
+              <div className="empty-hints">
+                <span className="kbd">⌘N</span> new request
+                <span className="kbd">⌘P</span> search
+              </div>
+            </div>
+          </div>
         )}
       </div>
       {historyPanelOpen && <HistoryPanel />}

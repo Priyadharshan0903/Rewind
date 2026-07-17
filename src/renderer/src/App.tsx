@@ -43,6 +43,14 @@ export default function App(): React.JSX.Element {
     return window.relay.onRunAppended((summary) => useRuns.getState().handleAppended(summary))
   }, [])
 
+  // ⌘W (File → Close Tab in the app menu) closes the active request tab.
+  useEffect(() => {
+    return window.relay.onCloseActiveTab(() => {
+      const app = useApp.getState()
+      if (useUi.getState().view === 'runbook' && app.selection) app.closeTab(app.selection.requestId)
+    })
+  }, [])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       const ui = useUi.getState()

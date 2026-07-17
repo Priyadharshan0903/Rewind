@@ -6,6 +6,7 @@ Implemented from the claude.ai/design mock **Relay Runbook** (design project `3e
 
 ## Features
 
+- **Tabs** — Postman-style open-request tabs above the editor: click requests to open them side by side, switch freely, close with ✕ / middle-click / `⌘W` (File → Close Tab; `⇧⌘W` closes the window), reorder-safe fallback when a tabbed request is deleted, `+` for a quick new request, and a friendly empty state when nothing's open. Open tabs and the active tab survive restarts, per profile.
 - **Runbook** — collection sidebar, editable request name, method + URL bar with variable highlighting, Body/Headers/Auth/Scripts tabs, real HTTP execution from the main process (no CORS), response pane with status, timing, size, Save-example and a Retry button on failed runs. Responses are auto-prettified for display (raw bytes stay on disk), very large bodies render on a fast plain path, and draggable splitters (double-click to reset): one trades request-editor space for response space, another resizes the collection sidebar — both positions persist. VSCode-style layout toggles in the titlebar (and `⌘B` / `⌘J` / `⌘⌥B`) hide the sidebar, response pane and history panel; sending a request reopens a hidden response pane.
 - **Copy as code** — cURL, Node.js (fetch) or Python (requests) snippets for any request (sent or not), resolved against the active environment. Paste a cURL command into the URL bar and it's parsed into method, URL, headers, auth and body.
 - **Run history & diff** — every send is appended to an on-disk run log; the right panel diffs any older run against the current response (`same / ~ changed / + added / − removed`).
@@ -55,4 +56,4 @@ Note: unset `ELECTRON_RUN_AS_NODE` before launching Electron from tooling that s
 - `src/renderer` — React + zustand; hand-rolled JSON editor (transparent textarea over highlighted `<pre>`), tokenizer shared by editor/viewer/diff, line diff via `diff` + changed-row pairing.
 - `src/shared` — types, IPC channel names, `${var}` interpolation and cURL generation used by both processes so preview and send can't drift.
 
-Keyboard: `⌘↩` send · `⌘S` save changes · `⌘N` new request · `⌘P` search · `⌘E` environments · `⌘B` sidebar · `⌘J` response pane · `⌘⌥B` history panel · `⌘,` preferences · `⌘/` shortcuts · `Esc` close.
+Keyboard: `⌘↩` send · `⌘S` save changes · `⌘N` new request · `⌘W` close tab · `⌘P` search · `⌘E` environments · `⌘B` sidebar · `⌘J` response pane · `⌘⌥B` history panel · `⌘,` preferences · `⌘/` shortcuts · `Esc` close.
