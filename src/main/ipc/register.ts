@@ -15,6 +15,7 @@ import type {
   RelayBundle,
   RequestNode,
   Run,
+  RunRequest,
   RunsQuery,
   SendPayload,
   Settings,
@@ -114,7 +115,7 @@ export function registerIpc(onThemeChange: (settings: Settings) => void): void {
     const vars = { ...varsFromEnv(collection?.variables ?? []), ...varsFromEnv(env?.variables ?? []) }
     const req = payload.request
 
-    const url = interpolate(req.url, vars).text
+    let url = interpolate(req.url, vars).text
     const headers: [string, string][] = []
     for (const h of req.headers) {
       if (!h.enabled || !h.key.trim()) continue
@@ -125,11 +126,41 @@ export function registerIpc(onThemeChange: (settings: Settings) => void): void {
       if (req.auth.mode === 'inherit' && vars.token) headers.unshift(['Authorization', `Bearer ${vars.token}`])
       else if (req.auth.mode === 'bearer' && req.auth.token) {
         headers.unshift(['Authorization', `Bearer ${interpolate(req.auth.token, vars).text}`])
+      } else if (req.auth.mode === 'basic') {
+        const user = interpolate(req.auth.username ?? '', vars).text
+        const pass = interpolate(req.auth.password ?? '', vars).text
+        if (user || pass) headers.unshift(['Authorization', `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`])
       }
     }
-    const bodyText = req.body.mode === 'none' ? '' : interpolate(req.body.text, vars).text
+    if (req.auth.mode === 'apikey' && req.auth.key?.trim()) {
+      const key = interpolate(req.auth.key, vars).text
+      const value = interpolate(req.auth.value ?? '', vars).text
+      if (req.auth.addTo === 'query') url += `${url.includes('?') ? '&' : '?'}${key}=${value}`
+      else headers.unshift([key, value])
+    }
 
-    const resolved = { method: req.method, url, headers, bodyText }
+    const hasContentType = (): boolean => headers.some(([k]) => k.toLowerCase() === 'content-type')
+    let bodyText = ''
+    let bodyForm: RunRequest['bodyForm']
+    const fields = (req.body.form ?? []).filter((f) => f.enabled && f.key.trim())
+    if (req.body.mode === 'json' || req.body.mode === 'text') {
+      bodyText = interpolate(req.body.text, vars).text
+    } else if (req.body.mode === 'urlencoded') {
+      bodyText = fields
+        .map((f) => `${encodeURIComponent(interpolate(f.key, vars).text)}=${encodeURIComponent(interpolate(f.value, vars).text)}`)
+        .join('&')
+      if (!hasContentType()) headers.push(['Content-Type', 'application/x-www-form-urlencoded'])
+    } else if (req.body.mode === 'formdata') {
+      bodyForm = fields.map((f) => ({
+        name: interpolate(f.key, vars).text,
+        value: f.type === 'file' ? f.value : interpolate(f.value, vars).text,
+        type: f.type
+      }))
+      // Human-readable stand-in for the run log; the real multipart body is built at send time.
+      bodyText = `[multipart/form-data] ${bodyForm.map((f) => (f.type === 'file' ? `${f.name}=@${f.value}` : `${f.name}=${f.value}`)).join('; ')}`
+    }
+
+    const resolved: RunRequest = { method: req.method, url, headers, bodyText, ...(bodyForm ? { bodyForm } : {}) }
     const result = await sendHttp(payload.sendId, resolved, settings.responseBodyLimitBytes)
 
     const run: Run = {
@@ -274,6 +305,15 @@ export function registerIpc(onThemeChange: (settings: Settings) => void): void {
       },
       boot: await loadBoot()
     }
+  })
+
+  ipcMain.handle(IPC.dialogPickFile, async (e): Promise<string | null> => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const { canceled, filePaths } = await dialog.showOpenDialog(win!, {
+      title: 'Choose file',
+      properties: ['openFile']
+    })
+    return canceled ? null : (filePaths[0] ?? null)
   })
 
   ipcMain.handle(IPC.shellOpenExternal, (_e, url: string) => {

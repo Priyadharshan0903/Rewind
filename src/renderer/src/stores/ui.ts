@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 export type View = 'runbook' | 'history'
-export type RequestTab = 'body' | 'headers' | 'auth' | 'scripts'
+export type RequestTab = 'params' | 'body' | 'headers' | 'auth' | 'scripts'
 
 interface Toast {
   id: number

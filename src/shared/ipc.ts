@@ -23,5 +23,6 @@ export const IPC = {
   openapiImport: 'openapi:import',
   postmanImport: 'postman:import',
   tabsCloseActive: 'tabs:closeActive',
+  dialogPickFile: 'dialog:pickFile',
   shellOpenExternal: 'shell:openExternal'
 } as const

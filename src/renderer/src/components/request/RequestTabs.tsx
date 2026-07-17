@@ -1,6 +1,7 @@
-import { useRef } from 'react'
-import type { KV, RequestNode } from '@shared/types'
+import { useMemo, useRef } from 'react'
+import type { FormField, KV, RequestNode } from '@shared/types'
 import { newId } from '@shared/id'
+import { paramsFromUrl, urlWithParams } from '@shared/params'
 import { useApp, useActiveEnv, useMergedVars } from '@/stores/app'
 import { useUi, type RequestTab } from '@/stores/ui'
 import { CodeEditor } from '@/components/common/Code'
@@ -8,6 +9,7 @@ import { useVarSuggest } from '@/components/common/VarSuggest'
 import { FindBar } from '@/components/common/FindBar'
 
 const TABS: { key: RequestTab; label: string }[] = [
+  { key: 'params', label: 'Params' },
   { key: 'body', label: 'Body' },
   { key: 'headers', label: 'Headers' },
   { key: 'auth', label: 'Auth' },
@@ -24,6 +26,7 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
   const contentRef = useRef<HTMLDivElement>(null)
   const inheritsAuth = request.auth.mode === 'inherit' && !!vars.token
   const headerCount = request.headers.filter((h) => h.enabled && h.key.trim()).length + (inheritsAuth ? 1 : 0)
+  const paramCount = (request.params ?? paramsFromUrl(request.url)).filter((p) => p.enabled && p.key.trim()).length
 
   const height = savedHeight
 
@@ -72,6 +75,7 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
           <button key={t.key} className={tab === t.key ? 'tab tab-active' : 'tab'} onClick={() => setTab(t.key)}>
             {t.label}
             {t.key === 'headers' && headerCount > 0 && <span className="tab-count">{headerCount}</span>}
+            {t.key === 'params' && paramCount > 0 && <span className="tab-count">{paramCount}</span>}
           </button>
         ))}
         <button
@@ -88,6 +92,7 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
       <div className="request-area" style={responsePaneOpen ? undefined : { flex: 1, minHeight: 0 }}>
         <FindBar />
         <div ref={contentRef} className="tab-content" style={responsePaneOpen ? { height } : { height: 'auto', flex: 1 }}>
+          {tab === 'params' && <ParamsTab request={request} />}
           {tab === 'body' && <BodyTab request={request} />}
           {tab === 'headers' && <HeadersTab request={request} />}
           {tab === 'auth' && <AuthTab request={request} />}
@@ -108,29 +113,212 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
   )
 }
 
+function ParamsTab({ request }: { request: RequestNode }): React.JSX.Element {
+  const updateRequest = useApp((s) => s.updateRequest)
+  // Saved requests may predate the params field — derive rows from the URL until first edit.
+  const params = useMemo(
+    () => request.params ?? paramsFromUrl(request.url),
+    [request.params, request.url]
+  )
+
+  const commit = (next: KV[]): void => {
+    updateRequest({ params: next, url: urlWithParams(request.url, next) })
+  }
+  const patchParam = (id: string, patch: Partial<KV>): void => {
+    commit(params.map((p) => (p.id === id ? { ...p, ...patch } : p)))
+  }
+
+  return (
+    <div className="headers-grid">
+      <div className="header-row header-labels">
+        <span />
+        <span className="micro-label">KEY</span>
+        <span className="micro-label">VALUE</span>
+        <span />
+      </div>
+      {params.map((p) => (
+        <KVRow
+          key={p.id}
+          row={p}
+          keyPlaceholder="param"
+          patch={patchParam}
+          remove={(id) => commit(params.filter((x) => x.id !== id))}
+        />
+      ))}
+      <button
+        className="link-btn add-header"
+        onClick={() => updateRequest({ params: [...params, { id: newId(6), key: '', value: '', enabled: true }] })}
+      >
+        + Add param
+      </button>
+      {!params.length && <div className="tab-hint">Rows stay in sync with the query string in the URL bar.</div>}
+    </div>
+  )
+}
+
+const BODY_MODES: { key: RequestNode['body']['mode']; label: string }[] = [
+  { key: 'none', label: 'None' },
+  { key: 'json', label: 'JSON' },
+  { key: 'text', label: 'Text' },
+  { key: 'urlencoded', label: 'Form URL-encoded' },
+  { key: 'formdata', label: 'Form-data' }
+]
+
 function BodyTab({ request }: { request: RequestNode }): React.JSX.Element {
   const updateRequest = useApp((s) => s.updateRequest)
-  if (request.body.mode === 'none') {
-    return (
-      <div className="tab-empty">
-        <span>This request has no body.</span>
-        <button
-          className="link-btn"
-          onClick={() => updateRequest({ body: { mode: 'json', text: '{\n  \n}' } })}
-        >
-          Add JSON body
-        </button>
-      </div>
-    )
+  const body = request.body
+  const setMode = (mode: RequestNode['body']['mode']): void => {
+    const next = { ...body, mode }
+    if (mode === 'json' && !body.text.trim()) next.text = '{\n  \n}'
+    if ((mode === 'urlencoded' || mode === 'formdata') && !body.form?.length) {
+      next.form = [{ id: newId(6), key: '', value: '', enabled: true, type: 'text' }]
+    }
+    updateRequest({ body: next })
   }
+
   return (
-    <CodeEditor
-      value={request.body.text}
-      onChange={(text) => updateRequest({ body: { ...request.body, text } })}
-      language="json"
-      varSuggest
-      findable
-    />
+    <div className="body-tab">
+      <div className="body-mode-row">
+        {BODY_MODES.map((m) => (
+          <button
+            key={m.key}
+            className={body.mode === m.key ? 'body-mode body-mode-active' : 'body-mode'}
+            onClick={() => setMode(m.key)}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      {body.mode === 'none' && (
+        <div className="tab-empty">
+          <span>This request has no body.</span>
+        </div>
+      )}
+      {(body.mode === 'json' || body.mode === 'text') && (
+        <CodeEditor
+          value={body.text}
+          onChange={(text) => updateRequest({ body: { ...body, text } })}
+          language="json"
+          varSuggest
+          findable
+        />
+      )}
+      {(body.mode === 'urlencoded' || body.mode === 'formdata') && <FormGrid request={request} />}
+    </div>
+  )
+}
+
+function FormGrid({ request }: { request: RequestNode }): React.JSX.Element {
+  const updateRequest = useApp((s) => s.updateRequest)
+  const body = request.body
+  const fields = body.form ?? []
+  const withFiles = body.mode === 'formdata'
+
+  const commit = (form: FormField[]): void => updateRequest({ body: { ...body, form } })
+  const patchField = (id: string, patch: Partial<FormField>): void => {
+    commit(fields.map((f) => (f.id === id ? { ...f, ...patch } : f)))
+  }
+
+  return (
+    <div className="headers-grid">
+      <div className="header-row header-labels">
+        <span />
+        <span className="micro-label">KEY</span>
+        <span className="micro-label">VALUE</span>
+        <span />
+      </div>
+      {fields.map((f) => (
+        <div key={f.id} className={f.enabled ? 'header-row' : 'header-row header-off'}>
+          <input type="checkbox" checked={f.enabled} onChange={(e) => patchField(f.id, { enabled: e.target.checked })} />
+          <span className="form-key-wrap">
+            <input
+              className="header-key code-font"
+              placeholder="field"
+              value={f.key}
+              onChange={(e) => patchField(f.id, { key: e.target.value })}
+              spellCheck={false}
+            />
+            {withFiles && (
+              <select
+                className="form-type"
+                value={f.type}
+                onChange={(e) => patchField(f.id, { type: e.target.value as FormField['type'], value: '' })}
+              >
+                <option value="text">text</option>
+                <option value="file">file</option>
+              </select>
+            )}
+          </span>
+          {f.type === 'file' && withFiles ? (
+            <span className="form-file-wrap">
+              <button
+                className="link-btn"
+                onClick={async () => {
+                  const path = await window.relay.pickFile()
+                  if (path) patchField(f.id, { value: path })
+                }}
+              >
+                {f.value ? f.value.split('/').pop() : 'Choose file…'}
+              </button>
+              {f.value && <span className="form-file-path code-font">{f.value}</span>}
+            </span>
+          ) : (
+            <input
+              className="header-value code-font"
+              placeholder="value"
+              value={f.value}
+              onChange={(e) => patchField(f.id, { value: e.target.value })}
+              spellCheck={false}
+            />
+          )}
+          <button className="icon-btn" title="Remove field" onClick={() => commit(fields.filter((x) => x.id !== f.id))}>
+            ✕
+          </button>
+        </div>
+      ))}
+      <button
+        className="link-btn add-header"
+        onClick={() => commit([...fields, { id: newId(6), key: '', value: '', enabled: true, type: 'text' }])}
+      >
+        + Add field
+      </button>
+    </div>
+  )
+}
+
+/** Plain key/value row (no var-suggest) shared by the Params grid. */
+function KVRow({
+  row,
+  keyPlaceholder,
+  patch,
+  remove
+}: {
+  row: KV
+  keyPlaceholder: string
+  patch: (id: string, p: Partial<KV>) => void
+  remove: (id: string) => void
+}): React.JSX.Element {
+  return (
+    <div className={row.enabled ? 'header-row' : 'header-row header-off'}>
+      <input type="checkbox" checked={row.enabled} onChange={(e) => patch(row.id, { enabled: e.target.checked })} />
+      <input
+        className="header-key code-font"
+        placeholder={keyPlaceholder}
+        value={row.key}
+        onChange={(e) => patch(row.id, { key: e.target.value })}
+        spellCheck={false}
+      />
+      <input
+        className="header-value code-font"
+        placeholder="value"
+        value={row.value}
+        onChange={(e) => patch(row.id, { value: e.target.value })}
+        spellCheck={false}
+      />
+      <button className="icon-btn" title="Remove" onClick={() => remove(row.id)}>
+        ✕
+      </button>
+    </div>
   )
 }
 
@@ -254,6 +442,8 @@ function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
         >
           <option value="inherit">Inherit from environment</option>
           <option value="bearer">Bearer token</option>
+          <option value="basic">Basic auth</option>
+          <option value="apikey">API key</option>
           <option value="none">No auth</option>
         </select>
       </div>
@@ -274,6 +464,53 @@ function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
             onChange={(e) => updateRequest({ auth: { ...request.auth, token: e.target.value } })}
             spellCheck={false}
           />
+        </div>
+      )}
+      {mode === 'basic' && (
+        <div className="auth-detail auth-fields">
+          <span className="chip chip-accent">Basic</span>
+          <input
+            className="auth-input code-font"
+            placeholder="username or {{user}}"
+            value={request.auth.username ?? ''}
+            onChange={(e) => updateRequest({ auth: { ...request.auth, username: e.target.value } })}
+            spellCheck={false}
+          />
+          <input
+            className="auth-input code-font"
+            type="password"
+            placeholder="password or {{password}}"
+            value={request.auth.password ?? ''}
+            onChange={(e) => updateRequest({ auth: { ...request.auth, password: e.target.value } })}
+            spellCheck={false}
+          />
+        </div>
+      )}
+      {mode === 'apikey' && (
+        <div className="auth-detail auth-fields">
+          <span className="chip chip-accent">API key</span>
+          <input
+            className="auth-input code-font"
+            placeholder="key, e.g. X-Api-Key"
+            value={request.auth.key ?? ''}
+            onChange={(e) => updateRequest({ auth: { ...request.auth, key: e.target.value } })}
+            spellCheck={false}
+          />
+          <input
+            className="auth-input code-font"
+            placeholder="value or {{apiKey}}"
+            value={request.auth.value ?? ''}
+            onChange={(e) => updateRequest({ auth: { ...request.auth, value: e.target.value } })}
+            spellCheck={false}
+          />
+          <select
+            className="auth-mode auth-addto"
+            value={request.auth.addTo ?? 'header'}
+            onChange={(e) => updateRequest({ auth: { ...request.auth, addTo: e.target.value as 'header' | 'query' } })}
+          >
+            <option value="header">Add to header</option>
+            <option value="query">Add to query</option>
+          </select>
         </div>
       )}
       {mode === 'none' && <div className="auth-detail auth-note">No Authorization header will be sent.</div>}

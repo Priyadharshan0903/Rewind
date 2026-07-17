@@ -1,10 +1,15 @@
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'
 
 export interface KV {
   id: string
   key: string
   value: string
   enabled: boolean
+}
+
+/** One urlencoded / form-data field; for `type: 'file'`, `value` is the file path. */
+export interface FormField extends KV {
+  type: 'text' | 'file'
 }
 
 export interface Workspace {
@@ -46,13 +51,21 @@ export interface Environment {
 }
 
 export interface RequestAuth {
-  mode: 'inherit' | 'bearer' | 'none'
+  mode: 'inherit' | 'bearer' | 'basic' | 'apikey' | 'none'
   token?: string
+  username?: string
+  password?: string
+  /** API key: header/param name and value. */
+  key?: string
+  value?: string
+  addTo?: 'header' | 'query'
 }
 
 export interface RequestBody {
-  mode: 'none' | 'json' | 'text'
+  mode: 'none' | 'json' | 'text' | 'urlencoded' | 'formdata'
   text: string
+  /** Fields for the urlencoded / formdata modes. */
+  form?: FormField[]
 }
 
 export interface SavedExample {
@@ -71,6 +84,8 @@ export interface RequestNode {
   method: HttpMethod
   url: string
   headers: KV[]
+  /** Query params, kept in two-way sync with the url's query string (disabled rows live only here). */
+  params?: KV[]
   body: RequestBody
   auth: RequestAuth
   scripts: { postResponse: string }
@@ -100,6 +115,8 @@ export interface RunRequest {
   url: string
   headers: [string, string][]
   bodyText: string
+  /** Resolved multipart fields; when present the request is sent as multipart/form-data. */
+  bodyForm?: { name: string; value: string; type: 'text' | 'file' }[]
 }
 
 export interface RunResponse {

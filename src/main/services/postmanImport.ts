@@ -1,7 +1,7 @@
-import type { Collection, Environment, FolderNode, HttpMethod, KV, RequestNode, TreeNode } from '@shared/types'
+import type { Collection, Environment, FolderNode, FormField, HttpMethod, KV, RequestNode, TreeNode } from '@shared/types'
 import { newId } from '@shared/id'
 
-const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
 
 /* ---------- Postman shapes (v2.x collection, v1 dump, environment) ---------- */
 
@@ -46,7 +46,7 @@ interface PmBody {
   raw?: string
   options?: { raw?: { language?: string } }
   urlencoded?: { key?: string; value?: string; disabled?: boolean; type?: string }[]
-  formdata?: { key?: string; value?: string; disabled?: boolean; type?: string }[]
+  formdata?: { key?: string; value?: string; src?: string; disabled?: boolean; type?: string }[]
   graphql?: { query?: string; variables?: string }
 }
 
@@ -173,21 +173,23 @@ function applyAuth(auth: PmAuth | undefined, node: RequestNode, warnings: string
       break
     }
     case 'basic': {
-      const user = authParam(auth.basic, 'username')
-      const pass = authParam(auth.basic, 'password')
-      if (user.includes('{{') || pass.includes('{{')) {
-        warnings.push(`“${node.name}”: basic auth uses variables — set the Authorization header manually.`)
-      } else if (user || pass) {
-        node.headers.unshift(kv('Authorization', `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`))
+      node.auth = {
+        mode: 'basic',
+        username: mapVars(authParam(auth.basic, 'username')),
+        password: mapVars(authParam(auth.basic, 'password'))
       }
       break
     }
     case 'apikey': {
       const key = authParam(auth.apikey, 'key')
-      const value = authParam(auth.apikey, 'value')
-      const where = authParam(auth.apikey, 'in')
-      if (key && where !== 'query') node.headers.unshift(kv(key, mapVars(value)))
-      else if (key) node.url += `${node.url.includes('?') ? '&' : '?'}${key}=${mapVars(value)}`
+      if (key) {
+        node.auth = {
+          mode: 'apikey',
+          key,
+          value: mapVars(authParam(auth.apikey, 'value')),
+          addTo: authParam(auth.apikey, 'in') === 'query' ? 'query' : 'header'
+        }
+      }
       break
     }
     default:
@@ -200,23 +202,20 @@ function hasHeader(headers: KV[], name: string): boolean {
 }
 
 function formPairsToBody(
-  pairs: { key?: string; value?: string; disabled?: boolean; enabled?: boolean; type?: string }[],
+  pairs: { key?: string; value?: string; src?: string; disabled?: boolean; enabled?: boolean; type?: string }[],
   node: RequestNode,
-  warnings: string[],
   isFormData: boolean
 ): void {
-  const usable = pairs.filter((p) => p.key && p.type !== 'file' && !p.disabled && p.enabled !== false)
-  if (isFormData && pairs.some((p) => p.type === 'file')) {
-    warnings.push(`“${node.name}”: file fields in form-data were dropped (not supported).`)
-  }
-  node.body = {
-    mode: 'text',
-    text: usable.map((p) => `${encodeURIComponent(p.key!)}=${encodeURIComponent(mapVars(p.value ?? ''))}`).join('&')
-  }
-  if (!hasHeader(node.headers, 'Content-Type')) {
-    node.headers.unshift(kv('Content-Type', 'application/x-www-form-urlencoded'))
-  }
-  if (isFormData) warnings.push(`“${node.name}”: form-data was converted to a urlencoded body.`)
+  const form: FormField[] = pairs
+    .filter((p) => p.key)
+    .map((p) => ({
+      id: newId(6),
+      key: p.key!,
+      value: p.type === 'file' ? String(p.src ?? '') : mapVars(p.value ?? ''),
+      enabled: !p.disabled && p.enabled !== false,
+      type: isFormData && p.type === 'file' ? 'file' : 'text'
+    }))
+  node.body = { mode: isFormData ? 'formdata' : 'urlencoded', text: '', form }
 }
 
 function looksLikeJson(text: string): boolean {
@@ -274,9 +273,9 @@ function convertV2Request(item: PmV2Item, stats: ConvertStats): RequestNode | nu
     const isJson = body.options?.raw?.language === 'json' || looksLikeJson(body.raw)
     node.body = { mode: isJson ? 'json' : 'text', text: mapVars(body.raw) }
   } else if (body?.mode === 'urlencoded' && body.urlencoded?.length) {
-    formPairsToBody(body.urlencoded, node, stats.warnings, false)
+    formPairsToBody(body.urlencoded, node, false)
   } else if (body?.mode === 'formdata' && body.formdata?.length) {
-    formPairsToBody(body.formdata, node, stats.warnings, true)
+    formPairsToBody(body.formdata, node, true)
   } else if (body?.mode === 'graphql' && body.graphql?.query) {
     let variables: unknown = {}
     try {
@@ -376,7 +375,7 @@ function convertV1Request(pm: PmV1Request, stats: ConvertStats): RequestNode | n
     const raw = typeof pm.rawModeData === 'string' ? pm.rawModeData : typeof pm.data === 'string' ? pm.data : ''
     if (raw.trim()) node.body = { mode: looksLikeJson(raw) ? 'json' : 'text', text: mapVars(raw) }
   } else if ((pm.dataMode === 'urlencoded' || pm.dataMode === 'params') && Array.isArray(pm.data) && pm.data.length) {
-    formPairsToBody(pm.data, node, stats.warnings, pm.dataMode === 'params')
+    formPairsToBody(pm.data, node, pm.dataMode === 'params')
   } else if (pm.dataMode === 'graphql' && pm.graphqlModeData?.query) {
     node.body = { mode: 'json', text: JSON.stringify({ query: pm.graphqlModeData.query, variables: {} }, null, 2) }
   }

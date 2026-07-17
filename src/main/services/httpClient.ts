@@ -1,3 +1,5 @@
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
 import type { RunRequest, RunResponse } from '@shared/types'
 
 const inflight = new Map<string, AbortController>()
@@ -18,11 +20,26 @@ export async function sendHttp(sendId: string, req: RunRequest, bodyLimitBytes: 
   try {
     const headers = new Headers()
     for (const [k, v] of req.headers) headers.append(k, v)
-    const hasBody = req.bodyText.trim().length > 0 && !['GET', 'HEAD'].includes(req.method)
+    const noBodyMethod = ['GET', 'HEAD'].includes(req.method)
+    let body: string | FormData | undefined
+    if (req.bodyForm && !noBodyMethod) {
+      const form = new FormData()
+      for (const f of req.bodyForm) {
+        if (f.type === 'file') {
+          const buf = await fs.readFile(f.value)
+          form.append(f.name, new Blob([buf]), path.basename(f.value))
+        } else {
+          form.append(f.name, f.value)
+        }
+      }
+      body = form // fetch sets the multipart Content-Type with boundary
+    } else if (req.bodyText.trim().length > 0 && !noBodyMethod) {
+      body = req.bodyText
+    }
     const res = await fetch(req.url, {
       method: req.method,
       headers,
-      body: hasBody ? req.bodyText : undefined,
+      body,
       redirect: 'follow',
       signal: controller.signal
     })

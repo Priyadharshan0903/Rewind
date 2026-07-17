@@ -9,7 +9,7 @@ import { useUi } from '@/stores/ui'
 import { findParentFolder } from '@/lib/tree'
 import { useVarSuggest } from '@/components/common/VarSuggest'
 
-const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
 
 export function RequestTitle({
   request,
@@ -58,15 +58,26 @@ export function UrlRow({ request }: { request: RequestNode }): React.JSX.Element
   const toast = useUi((s) => s.toast)
 
   const importCurl = (parsed: ParsedCurl): void => {
-    let bodyMode: RequestNode['body']['mode'] = 'text'
-    let bodyText = parsed.bodyText
-    if (!bodyText) bodyMode = 'none'
-    else {
+    let body: RequestNode['body']
+    if (parsed.formFields?.length) {
+      body = {
+        mode: 'formdata',
+        text: '',
+        form: parsed.formFields.map(([key, value]) => ({
+          id: newId(6),
+          key,
+          value: value.startsWith('@') ? value.slice(1) : value,
+          enabled: true,
+          type: value.startsWith('@') ? ('file' as const) : ('text' as const)
+        }))
+      }
+    } else if (!parsed.bodyText) {
+      body = { mode: 'none', text: '' }
+    } else {
       try {
-        bodyText = JSON.stringify(JSON.parse(bodyText), null, 2)
-        bodyMode = 'json'
+        body = { mode: 'json', text: JSON.stringify(JSON.parse(parsed.bodyText), null, 2) }
       } catch {
-        bodyMode = 'text'
+        body = { mode: 'text', text: parsed.bodyText }
       }
     }
     const hasAuthHeader = parsed.headers.some(([k]) => k.toLowerCase() === 'authorization')
@@ -74,11 +85,11 @@ export function UrlRow({ request }: { request: RequestNode }): React.JSX.Element
       method: parsed.method,
       url: parsed.url,
       headers: parsed.headers.map(([key, value]) => ({ id: newId(6), key, value, enabled: true })),
-      body: { mode: bodyMode, text: bodyText },
+      body,
       // An explicit Authorization header replaces the inherited env auth.
       ...(hasAuthHeader ? { auth: { mode: 'none' as const } } : {})
     })
-    toast(`Imported from cURL — ${parsed.method} · ${parsed.headers.length} headers${parsed.bodyText ? ' · body' : ''}`)
+    toast(`Imported from cURL — ${parsed.method} · ${parsed.headers.length} headers${body.mode !== 'none' ? ' · body' : ''}`)
   }
 
   return (

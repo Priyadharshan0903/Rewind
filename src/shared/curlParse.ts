@@ -5,6 +5,8 @@ export interface ParsedCurl {
   url: string
   headers: [string, string][]
   bodyText: string
+  /** -F/--form fields; a value starting with '@' is a file path. */
+  formFields?: [string, string][]
 }
 
 /** Split a shell command into words, honoring quotes and line continuations. */
@@ -47,7 +49,7 @@ function shellWords(input: string): string[] {
   return words
 }
 
-const METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
+const METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'])
 
 export function looksLikeCurl(text: string): boolean {
   return /^\s*curl\s/i.test(text)
@@ -63,6 +65,7 @@ export function parseCurl(text: string): ParsedCurl | null {
   let url = ''
   const headers: [string, string][] = []
   const dataParts: string[] = []
+  const formFields: [string, string][] = []
   let user: string | null = null
 
   const takesValue = new Set([
@@ -116,6 +119,13 @@ export function parseCurl(text: string): ParsedCurl | null {
       case '--cookie':
         headers.push(['Cookie', next()])
         break
+      case '-F':
+      case '--form': {
+        const f = next()
+        const eq = f.indexOf('=')
+        if (eq > 0) formFields.push([f.slice(0, eq), f.slice(eq + 1)])
+        break
+      }
       default:
         if (takesValue.has(w)) {
           next() // consume and ignore the value
@@ -131,10 +141,11 @@ export function parseCurl(text: string): ParsedCurl | null {
   }
   const bodyText = dataParts.join('&')
   return {
-    method: method ?? (bodyText ? 'POST' : 'GET'),
+    method: method ?? (bodyText || formFields.length ? 'POST' : 'GET'),
     url,
     headers,
-    bodyText
+    bodyText,
+    ...(formFields.length ? { formFields } : {})
   }
 }
 

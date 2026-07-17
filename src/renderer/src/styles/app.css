@@ -481,8 +481,14 @@ textarea {
   height: 26px;
   margin: 0 2px;
   align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
   font-size: 15px;
+  line-height: 1;
+  /* the + glyph sits optically low in JetBrains/Plex — nudge up a hair */
+  padding-bottom: 1px;
   color: var(--text3);
 }
 
@@ -712,6 +718,105 @@ textarea {
 }
 .method-delete {
   color: var(--del);
+}
+
+.method-head {
+  color: var(--head);
+}
+
+.method-options {
+  color: var(--options);
+}
+
+/* ---------- body mode switcher & form grids ---------- */
+
+.body-tab {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.body-mode-row {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.body-mode {
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text3);
+}
+
+.body-mode:hover {
+  color: var(--text);
+  background: var(--border2);
+}
+
+.body-mode-active {
+  color: var(--accent);
+  background: var(--border2);
+  font-weight: 600;
+}
+
+.form-key-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.form-key-wrap .header-key {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-type {
+  flex: none;
+  font: 500 10.5px var(--mono);
+  color: var(--text3);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 3px;
+}
+
+.form-file-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.form-file-path {
+  font-size: 10.5px;
+  color: var(--text3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-hint {
+  padding: 10px 2px;
+  font-size: 11.5px;
+  color: var(--text3);
+}
+
+.auth-fields {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.auth-addto {
+  flex: none;
 }
 
 .req-name {

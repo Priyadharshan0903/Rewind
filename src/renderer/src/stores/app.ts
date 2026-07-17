@@ -15,6 +15,7 @@ import type {
   Workspace
 } from '@shared/types'
 import { newId } from '@shared/id'
+import { paramsFromUrl } from '@shared/params'
 import type { FolderNode } from '@shared/types'
 import {
   cloneNode,
@@ -209,6 +210,10 @@ export const useApp = create<AppState>((set, get) => ({
     const base = drafts[selection.requestId] ?? saved
     if (!base) return
     const next = { ...base, ...patch }
+    // URL edits (typing, cURL paste) keep the params table in sync.
+    if (patch.url !== undefined && patch.params === undefined) {
+      next.params = paramsFromUrl(patch.url, base.params)
+    }
     // Edited back to exactly the saved state → not dirty anymore.
     if (saved && JSON.stringify(next) === JSON.stringify(saved)) {
       const rest = { ...drafts }

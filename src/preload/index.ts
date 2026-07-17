@@ -45,6 +45,7 @@ const api = {
   deleteProfile: (id: string): Promise<ProfilesState> => ipcRenderer.invoke(IPC.profilesDelete, id),
   importOpenApi: (): Promise<OpenApiImportResult> => ipcRenderer.invoke(IPC.openapiImport),
   importPostman: (): Promise<PostmanImportResult> => ipcRenderer.invoke(IPC.postmanImport),
+  pickFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.dialogPickFile),
   onRunAppended: (cb: (summary: RunSummary) => void): (() => void) => {
     const listener = (_e: unknown, summary: RunSummary): void => cb(summary)
     ipcRenderer.on(IPC.runsAppended, listener)

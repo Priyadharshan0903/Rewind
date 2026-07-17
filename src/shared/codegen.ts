@@ -8,19 +8,39 @@ function sq(s: string): string {
 export function buildCurl(req: RunRequest): string {
   const parts: string[] = [`curl -X ${req.method} ${sq(req.url)}`]
   for (const [k, v] of req.headers) parts.push(`  -H ${sq(`${k}: ${v}`)}`)
-  if (req.bodyText.trim()) parts.push(`  --data ${sq(req.bodyText)}`)
+  if (req.bodyForm) {
+    for (const f of req.bodyForm) {
+      parts.push(`  -F ${sq(f.type === 'file' ? `${f.name}=@${f.value}` : `${f.name}=${f.value}`)}`)
+    }
+  } else if (req.bodyText.trim()) {
+    parts.push(`  --data ${sq(req.bodyText)}`)
+  }
   return parts.join(' \\\n')
 }
 
 /** Node.js fetch snippet. */
 export function buildNode(req: RunRequest): string {
-  const lines: string[] = [`const res = await fetch(${JSON.stringify(req.url)}, {`, `  method: '${req.method}',`]
+  const lines: string[] = []
+  if (req.bodyForm) {
+    if (req.bodyForm.some((f) => f.type === 'file')) lines.push(`import { openAsBlob } from 'node:fs'`, '')
+    lines.push('const form = new FormData()')
+    for (const f of req.bodyForm) {
+      if (f.type === 'file') {
+        lines.push(`form.append(${JSON.stringify(f.name)}, await openAsBlob(${JSON.stringify(f.value)}), ${JSON.stringify(f.value.split('/').pop() ?? 'file')})`)
+      } else {
+        lines.push(`form.append(${JSON.stringify(f.name)}, ${JSON.stringify(f.value)})`)
+      }
+    }
+    lines.push('')
+  }
+  lines.push(`const res = await fetch(${JSON.stringify(req.url)}, {`, `  method: '${req.method}',`)
   if (req.headers.length) {
     lines.push('  headers: {')
     lines.push(req.headers.map(([k, v]) => `    ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(',\n'))
     lines.push('  },')
   }
-  if (req.bodyText.trim()) lines.push(`  body: ${JSON.stringify(req.bodyText)},`)
+  if (req.bodyForm) lines.push('  body: form,')
+  else if (req.bodyText.trim()) lines.push(`  body: ${JSON.stringify(req.bodyText)},`)
   lines.push('})', '', 'console.log(res.status, await res.text())')
   return lines.join('\n')
 }
@@ -33,7 +53,20 @@ export function buildPython(req: RunRequest): string {
     lines.push(req.headers.map(([k, v]) => `        ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(',\n'))
     lines.push('    },')
   }
-  if (req.bodyText.trim()) {
+  if (req.bodyForm) {
+    const texts = req.bodyForm.filter((f) => f.type === 'text')
+    const files = req.bodyForm.filter((f) => f.type === 'file')
+    if (texts.length) {
+      lines.push('    data={')
+      lines.push(texts.map((f) => `        ${JSON.stringify(f.name)}: ${JSON.stringify(f.value)}`).join(',\n'))
+      lines.push('    },')
+    }
+    if (files.length) {
+      lines.push('    files={')
+      lines.push(files.map((f) => `        ${JSON.stringify(f.name)}: open(${JSON.stringify(f.value)}, "rb")`).join(',\n'))
+      lines.push('    },')
+    }
+  } else if (req.bodyText.trim()) {
     let asJson = false
     try {
       JSON.parse(req.bodyText)
