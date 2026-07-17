@@ -9,8 +9,11 @@ const DEFAULT_SETTINGS: Settings = {
   theme: 'light',
   accent: 'indigo',
   historyPanelOpen: true,
+  sidebarOpen: true,
+  responsePaneOpen: true,
   responseBodyLimitBytes: 1024 * 1024,
-  requestPaneHeight: 196
+  requestPaneHeight: 196,
+  sidebarWidth: 236
 }
 
 export async function loadBoot(): Promise<BootPayload> {

@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs'
 import { files as filesPaths } from '../services/paths'
 import { createProfile, deleteProfile, listProfiles, renameProfile, switchProfile } from '../services/profiles'
 import { convertToCollection, parseSpec } from '../services/openapiImport'
+import { convertPostman } from '../services/postmanImport'
 import { IPC } from '@shared/ipc'
 import type {
   Collection,
@@ -10,6 +11,7 @@ import type {
   ExportResult,
   ImportResult,
   OpenApiImportResult,
+  PostmanImportResult,
   RelayBundle,
   RequestNode,
   Run,
@@ -313,6 +315,51 @@ export function registerIpc(onThemeChange: (settings: Settings) => void): void {
       return { collection, counts: { requests: requestCount, folders: folderCount } }
     } catch (err) {
       return { error: err instanceof Error ? err.message : String(err) }
+    }
+  })
+
+  ipcMain.handle(IPC.postmanImport, async (e): Promise<PostmanImportResult> => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const { canceled, filePaths } = await dialog.showOpenDialog(win!, {
+      title: 'Import from Postman',
+      message: 'Pick Postman exports: collections (v2.x), environments, or a full data dump — several at once is fine.',
+      filters: [
+        { name: 'Postman export', extensions: ['json', 'postman_collection', 'postman_environment'] },
+        { name: 'All files', extensions: ['*'] }
+      ],
+      properties: ['openFile', 'multiSelections']
+    })
+    if (canceled || !filePaths.length) return { canceled: true }
+
+    const collections: Collection[] = []
+    const environments: Environment[] = []
+    const warnings: string[] = []
+    let requests = 0
+    for (const filePath of filePaths) {
+      const fileName = filePath.split('/').pop() ?? filePath
+      try {
+        const result = convertPostman(await fs.readFile(filePath, 'utf8'))
+        collections.push(...result.collections)
+        environments.push(...result.environments)
+        requests += result.requestCount
+        warnings.push(...result.warnings)
+      } catch (err) {
+        warnings.push(`${fileName}: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+    if (!collections.length && !environments.length) {
+      return { error: warnings.join(' ') || 'Nothing importable found.' }
+    }
+
+    for (const collection of collections) await saveCollection(collection)
+    if (environments.length) {
+      await saveEnvironments([...(await getEnvironments()), ...environments])
+    }
+    return {
+      collections,
+      environments: await getEnvironments(),
+      counts: { collections: collections.length, environments: environments.length, requests },
+      warnings
     }
   })
 }

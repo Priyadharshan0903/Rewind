@@ -90,6 +90,7 @@ export function Sidebar(): React.JSX.Element {
   const toast = useUi((s) => s.toast)
   const onContext = useContextMenu()
   const importOpenApi = useImportOpenApi()
+  const importPostman = useImportPostman()
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -112,6 +113,7 @@ export function Sidebar(): React.JSX.Element {
     { label: 'Edit variables…', action: () => openEnvEditor() },
     { sep: true },
     { label: 'Import OpenAPI…', action: () => void importOpenApi() },
+    { label: 'Import from Postman…', action: () => void importPostman() },
     {
       label: 'Import workspace…',
       action: async () => {
@@ -170,6 +172,7 @@ export function Sidebar(): React.JSX.Element {
       </div>
       <div className="sb-footer">
         <ImportOpenApiButton />
+        <ImportPostmanButton />
       </div>
     </div>
   )
@@ -190,11 +193,43 @@ export function useImportOpenApi(): () => Promise<void> {
   }
 }
 
+export function useImportPostman(): () => Promise<void> {
+  const toast = useUi((s) => s.toast)
+  return async () => {
+    const result = await window.relay.importPostman()
+    if (result.error) {
+      toast(result.error, 'error')
+      return
+    }
+    if (!result.counts) return
+    const app = useApp.getState()
+    for (const collection of result.collections ?? []) app.adoptCollection(collection)
+    if (result.environments) app.updateEnvironments(result.environments)
+    const parts = [
+      result.counts.collections &&
+        `${result.counts.collections} collection${result.counts.collections > 1 ? 's' : ''} (${result.counts.requests} requests)`,
+      result.counts.environments &&
+        `${result.counts.environments} environment${result.counts.environments > 1 ? 's' : ''}`
+    ].filter(Boolean)
+    toast(`Imported from Postman: ${parts.join(', ')}`)
+    for (const warning of (result.warnings ?? []).slice(0, 3)) toast(warning, 'error')
+  }
+}
+
 function ImportOpenApiButton(): React.JSX.Element {
   const importOpenApi = useImportOpenApi()
   return (
     <button className="import-btn" onClick={() => void importOpenApi()}>
       ⤓ Import OpenAPI
+    </button>
+  )
+}
+
+function ImportPostmanButton(): React.JSX.Element {
+  const importPostman = useImportPostman()
+  return (
+    <button className="import-btn" onClick={() => void importPostman()}>
+      ⤓ Import from Postman
     </button>
   )
 }

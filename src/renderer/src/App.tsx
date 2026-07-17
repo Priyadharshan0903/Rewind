@@ -51,6 +51,20 @@ export default function App(): React.JSX.Element {
         return
       }
       if (!(e.metaKey || e.ctrlKey)) return
+      // e.code, not e.key: ⌥ changes e.key on macOS (⌘⌥B would report '∫').
+      if (e.code === 'KeyB') {
+        e.preventDefault()
+        const { settings, patchSettings } = useApp.getState()
+        if (e.altKey) patchSettings({ historyPanelOpen: !settings.historyPanelOpen })
+        else patchSettings({ sidebarOpen: !settings.sidebarOpen })
+        return
+      }
+      if (e.code === 'KeyJ') {
+        e.preventDefault()
+        const { settings, patchSettings } = useApp.getState()
+        patchSettings({ responsePaneOpen: !settings.responsePaneOpen })
+        return
+      }
       switch (e.key) {
         case 'Enter':
           e.preventDefault()

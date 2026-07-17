@@ -21,5 +21,6 @@ export const IPC = {
   profilesRename: 'profiles:rename',
   profilesDelete: 'profiles:delete',
   openapiImport: 'openapi:import',
+  postmanImport: 'postman:import',
   shellOpenExternal: 'shell:openExternal'
 } as const

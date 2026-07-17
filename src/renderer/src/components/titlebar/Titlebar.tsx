@@ -20,11 +20,61 @@ export function Titlebar(): React.JSX.Element {
         </button>
       </div>
       <div className="tb-spacer" />
+      {view === 'runbook' && <LayoutToggles />}
       <EnvPill />
       <button className="btn-accent no-drag" onClick={toggleShare}>
         ⇪ Share
       </button>
       <ProfileChip onClick={toggleProfile} />
+    </div>
+  )
+}
+
+/** Panel icon: outer frame + the toggled region, filled when the panel is visible. */
+function PanelIcon({ side, on }: { side: 'left' | 'bottom' | 'right'; on: boolean }): React.JSX.Element {
+  const region =
+    side === 'left'
+      ? { x: 3, y: 4.5, width: 3.5, height: 7 }
+      : side === 'right'
+        ? { x: 9.5, y: 4.5, width: 3.5, height: 7 }
+        : { x: 3, y: 8, width: 10, height: 3.5 }
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16">
+      <rect x="1.5" y="3" width="13" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      <rect {...region} rx="0.8" fill="currentColor" opacity={on ? 0.85 : 0.2} />
+    </svg>
+  )
+}
+
+/** VSCode-style layout toggles: hide/show sidebar, response pane, history panel. */
+function LayoutToggles(): React.JSX.Element {
+  const sidebarOpen = useApp((s) => s.settings.sidebarOpen)
+  const responsePaneOpen = useApp((s) => s.settings.responsePaneOpen)
+  const historyPanelOpen = useApp((s) => s.settings.historyPanelOpen)
+  const patchSettings = useApp((s) => s.patchSettings)
+  return (
+    <div className="layout-toggles no-drag">
+      <button
+        className="icon-btn"
+        title={`${sidebarOpen ? 'Hide' : 'Show'} sidebar (⌘B)`}
+        onClick={() => patchSettings({ sidebarOpen: !sidebarOpen })}
+      >
+        <PanelIcon side="left" on={sidebarOpen} />
+      </button>
+      <button
+        className="icon-btn"
+        title={`${responsePaneOpen ? 'Hide' : 'Show'} response pane (⌘J)`}
+        onClick={() => patchSettings({ responsePaneOpen: !responsePaneOpen })}
+      >
+        <PanelIcon side="bottom" on={responsePaneOpen} />
+      </button>
+      <button
+        className="icon-btn"
+        title={`${historyPanelOpen ? 'Hide' : 'Show'} history panel (⌘⌥B)`}
+        onClick={() => patchSettings({ historyPanelOpen: !historyPanelOpen })}
+      >
+        <PanelIcon side="right" on={historyPanelOpen} />
+      </button>
     </div>
   )
 }

@@ -29,9 +29,13 @@ export interface Settings {
   theme: ThemeSetting
   accent: AccentId
   historyPanelOpen: boolean
+  sidebarOpen: boolean
+  responsePaneOpen: boolean
   responseBodyLimitBytes: number
   /** Height of the request editor area (draggable splitter). */
   requestPaneHeight: number
+  /** Width of the collection sidebar (draggable splitter). */
+  sidebarWidth: number
 }
 
 export interface Environment {
@@ -217,6 +221,16 @@ export interface OpenApiImportResult {
   error?: string
   collection?: Collection
   counts?: { requests: number; folders: number }
+}
+
+export interface PostmanImportResult {
+  canceled?: boolean
+  error?: string
+  collections?: Collection[]
+  /** Full environment list after the import (existing + newly imported). */
+  environments?: Environment[]
+  counts?: { collections: number; environments: number; requests: number }
+  warnings?: string[]
 }
 
 export interface ImportResult {

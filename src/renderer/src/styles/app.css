@@ -79,6 +79,12 @@ textarea {
   flex: none;
 }
 
+.layout-toggles {
+  display: flex;
+  gap: 2px;
+  color: var(--text2);
+}
+
 .tb-app {
   font-weight: 600;
   letter-spacing: -0.1px;
@@ -361,7 +367,7 @@ textarea {
 /* ---------- sidebar ---------- */
 
 .sidebar {
-  width: 236px;
+  width: var(--sidebar-w, 236px);
   flex: none;
   display: flex;
   flex-direction: column;
@@ -606,6 +612,9 @@ textarea {
 
 .sb-footer {
   flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   padding: 10px;
   border-top: 1px solid var(--border);
 }
@@ -898,6 +907,20 @@ textarea {
 .splitter:active .splitter-grip {
   opacity: 1;
   background: var(--accent);
+}
+
+/* vertical variant: sits between sidebar and center pane */
+.splitter-v {
+  height: auto;
+  width: 7px;
+  margin: 0 -3px;
+  cursor: col-resize;
+  align-self: stretch;
+}
+
+.splitter-v .splitter-grip {
+  width: 3px;
+  height: 44px;
 }
 
 .tab-empty {
