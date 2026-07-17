@@ -5,6 +5,7 @@ import { useApp, useActiveEnv, useMergedVars } from '@/stores/app'
 import { useUi, type RequestTab } from '@/stores/ui'
 import { CodeEditor } from '@/components/common/Code'
 import { useVarSuggest } from '@/components/common/VarSuggest'
+import { FindBar } from '@/components/common/FindBar'
 
 const TABS: { key: RequestTab; label: string }[] = [
   { key: 'body', label: 'Body' },
@@ -61,12 +62,25 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
             {t.key === 'headers' && headerCount > 0 && <span className="tab-count">{headerCount}</span>}
           </button>
         ))}
+        <button
+          className="text-btn tabs-find-btn"
+          title="Find in request body (⌘F)"
+          onClick={() => {
+            setTab('body')
+            useUi.getState().setFind({ open: true, scope: 'request', idx: 0 })
+          }}
+        >
+          ⌕
+        </button>
       </div>
-      <div className="tab-content" style={{ height }}>
-        {tab === 'body' && <BodyTab request={request} />}
-        {tab === 'headers' && <HeadersTab request={request} />}
-        {tab === 'auth' && <AuthTab request={request} />}
-        {tab === 'scripts' && <ScriptsTab request={request} />}
+      <div className="request-area">
+        <FindBar />
+        <div className="tab-content" style={{ height }}>
+          {tab === 'body' && <BodyTab request={request} />}
+          {tab === 'headers' && <HeadersTab request={request} />}
+          {tab === 'auth' && <AuthTab request={request} />}
+          {tab === 'scripts' && <ScriptsTab request={request} />}
+        </div>
       </div>
       <div
         className="splitter"
@@ -101,6 +115,7 @@ function BodyTab({ request }: { request: RequestNode }): React.JSX.Element {
       onChange={(text) => updateRequest({ body: { ...request.body, text } })}
       language="json"
       varSuggest
+      findable
     />
   )
 }

@@ -6,6 +6,7 @@ const SHORTCUTS: [string, string][] = [
   ['⌘ S', 'Save request changes'],
   ['⌘ N', 'New request'],
   ['⌘ P', 'Search collection'],
+  ['⌘ F', 'Find in request / response'],
   ['⌘ E', 'Environments & variables'],
   ['⌘ ,', 'Preferences'],
   ['⌘ /', 'Keyboard shortcuts'],

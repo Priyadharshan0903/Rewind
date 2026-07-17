@@ -156,9 +156,18 @@ export const useApp = create<AppState>((set, get) => ({
     const { selection, collections, drafts } = get()
     if (!selection) return
     const collection = collections.find((c) => c.id === selection.collectionId)
-    const base = drafts[selection.requestId] ?? (collection ? findRequest(collection.items, selection.requestId) : null)
+    const saved = collection ? findRequest(collection.items, selection.requestId) : null
+    const base = drafts[selection.requestId] ?? saved
     if (!base) return
-    set({ drafts: { ...drafts, [selection.requestId]: { ...base, ...patch } } })
+    const next = { ...base, ...patch }
+    // Edited back to exactly the saved state → not dirty anymore.
+    if (saved && JSON.stringify(next) === JSON.stringify(saved)) {
+      const rest = { ...drafts }
+      delete rest[selection.requestId]
+      set({ drafts: rest })
+      return
+    }
+    set({ drafts: { ...drafts, [selection.requestId]: next } })
   },
 
   saveDraft: () => {
@@ -247,8 +256,19 @@ export const useApp = create<AppState>((set, get) => ({
       set,
       get
     )
-    const { drafts } = get()
-    if (drafts[requestId]) set({ drafts: { ...drafts, [requestId]: { ...drafts[requestId], name } } })
+    const { drafts, collections } = get()
+    const draft = drafts[requestId]
+    if (!draft) return
+    const renamed = { ...draft, name }
+    const collection = collections.find((c) => c.id === collectionId)
+    const saved = collection ? findRequest(collection.items, requestId) : null
+    if (saved && JSON.stringify(renamed) === JSON.stringify(saved)) {
+      const rest = { ...drafts }
+      delete rest[requestId]
+      set({ drafts: rest })
+    } else {
+      set({ drafts: { ...drafts, [requestId]: renamed } })
+    }
   },
 
   addRequest: (collectionId, folderId) => {

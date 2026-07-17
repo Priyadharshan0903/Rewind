@@ -2,11 +2,16 @@ import type { RequestNode } from '@shared/types'
 import { useApp, useMergedVars } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
 import { useUi } from '@/stores/ui'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { fmtBytes, fmtMs, prettyJson } from '@/lib/format'
 import { resolveForCodegen } from '@/lib/resolve'
-import { CodeView } from '@/components/common/Code'
+import { charWidth, findMatches, normIndex } from '@/lib/find'
+import { CodeView, isLargeBody } from '@/components/common/Code'
 import { CopyMenu } from '@/components/common/CopyMenu'
+import { FindMarksLayer } from '@/components/common/FindBar'
+
+const RESP_FONT = '400 12px "JetBrains Mono", monospace'
+const RESP_LINE_H = 21.6 // 12px × 1.8
 
 export function ResponsePane({ request }: { request: RequestNode }): React.JSX.Element {
   const run = useRuns((s) => s.currentRun)
@@ -28,6 +33,27 @@ export function ResponsePane({ request }: { request: RequestNode }): React.JSX.E
     () => (run?.response ? prettyJson(run.response.bodyText) : ''),
     [run?.response]
   )
+
+  const find = useUi((s) => s.find)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const findActive = find.open && find.scope === 'response' && !!find.query
+  const findText = run?.response ? displayBody : (run?.error ?? '')
+  const matches = useMemo(
+    () => (findActive ? findMatches(findText, find.query) : []),
+    [findActive, findText, find.query]
+  )
+  const currentMatch = normIndex(find.idx, matches.length)
+
+  useEffect(() => {
+    const container = bodyRef.current
+    const m = matches[currentMatch]
+    if (!container || !m) return
+    const top = m.line * RESP_LINE_H
+    container.scrollTo({
+      top: Math.max(0, top - container.clientHeight / 2),
+      left: Math.max(0, m.col * charWidth(RESP_FONT) - container.clientWidth / 2)
+    })
+  }, [matches, currentMatch])
 
   const saveExample = async (): Promise<void> => {
     if (!run) return
@@ -85,6 +111,13 @@ export function ResponsePane({ request }: { request: RequestNode }): React.JSX.E
         <div className="flex-spacer" />
         <button
           className="text-btn"
+          title="Find in response (⌘F)"
+          onClick={() => useUi.getState().setFind({ open: true, scope: 'response', idx: 0 })}
+        >
+          ⌕
+        </button>
+        <button
+          className="text-btn"
           title={historyPanelOpen ? 'Hide history panel' : 'Show history panel'}
           onClick={() => patchSettings({ historyPanelOpen: !historyPanelOpen })}
         >
@@ -95,7 +128,7 @@ export function ResponsePane({ request }: { request: RequestNode }): React.JSX.E
           ◇ Save example
         </button>
       </div>
-      <div className="resp-body">
+      <div className="resp-body" ref={bodyRef}>
         {sendError && <div className="resp-error">IPC error: {sendError}</div>}
         {!run && !sending && !sendError && (
           <div className="resp-empty">
@@ -110,7 +143,21 @@ export function ResponsePane({ request }: { request: RequestNode }): React.JSX.E
                 Body truncated for display — full size {fmtBytes(run.response.sizeBytes)}
               </div>
             )}
-            <CodeView text={displayBody || '— empty body —'} />
+            {isLargeBody(displayBody) && (
+              <div className="truncate-note">Large body — syntax highlighting off for speed</div>
+            )}
+            <div className="find-layer-host">
+              {findActive && (
+                <FindMarksLayer
+                  matches={matches}
+                  current={currentMatch}
+                  queryLen={find.query.length}
+                  charW={charWidth(RESP_FONT)}
+                  lineH={RESP_LINE_H}
+                />
+              )}
+              <CodeView text={displayBody || '— empty body —'} hideLargeNote />
+            </div>
           </>
         )}
       </div>

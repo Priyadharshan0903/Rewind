@@ -1,7 +1,13 @@
 import { memo, useEffect, useMemo, useRef } from 'react'
 import { tokenizeLine } from '@/lib/tokenize'
+import { charWidth, findMatches, normIndex } from '@/lib/find'
 import { useMergedVars } from '@/stores/app'
+import { useUi } from '@/stores/ui'
 import { useVarSuggest } from '@/components/common/VarSuggest'
+import { FindMarksLayer } from '@/components/common/FindBar'
+
+const ED_FONT = '400 12px "JetBrains Mono", monospace'
+const ED_LINE_H = 21 // 12px × 1.75
 
 export const CodeLine = memo(function CodeLine({
   text,
@@ -29,8 +35,22 @@ const MAX_HIGHLIGHT_CHARS = 200_000
 const MAX_HIGHLIGHT_LINES = 4_000
 const MAX_LINE_CHARS = 8_000
 
+export function isLargeBody(text: string): boolean {
+  if (text.length > MAX_HIGHLIGHT_CHARS) return true
+  const lines = text.split('\n')
+  return lines.length > MAX_HIGHLIGHT_LINES || lines.some((l) => l.length > MAX_LINE_CHARS)
+}
+
 /** Read-only tokenized code block (response bodies, snapshots). */
-export function CodeView({ text, language = 'json' }: { text: string; language?: 'json' | 'js' }): React.JSX.Element {
+export function CodeView({
+  text,
+  language = 'json',
+  hideLargeNote
+}: {
+  text: string
+  language?: 'json' | 'js'
+  hideLargeNote?: boolean
+}): React.JSX.Element {
   const lines = useMemo(() => text.split('\n'), [text])
   const plain =
     text.length > MAX_HIGHLIGHT_CHARS ||
@@ -39,7 +59,7 @@ export function CodeView({ text, language = 'json' }: { text: string; language?:
   if (plain) {
     return (
       <>
-        <div className="truncate-note">Large body — syntax highlighting off for speed</div>
+        {!hideLargeNote && <div className="truncate-note">Large body — syntax highlighting off for speed</div>}
         <pre className="code-view">{text}</pre>
       </>
     )
@@ -60,6 +80,8 @@ interface EditorProps {
   placeholder?: string
   /** Offer {{variable}} autocomplete (request bodies — not scripts). */
   varSuggest?: boolean
+  /** Participate in the ⌘F find bar's "Request" scope. */
+  findable?: boolean
 }
 
 /**
@@ -67,10 +89,11 @@ interface EditorProps {
  * line-number gutter. Font metrics of the textarea and the pre must match
  * exactly (same class), or the caret drifts from the highlight.
  */
-export function CodeEditor({ value, onChange, language, placeholder, varSuggest }: EditorProps): React.JSX.Element {
+export function CodeEditor({ value, onChange, language, placeholder, varSuggest, findable }: EditorProps): React.JSX.Element {
   const taRef = useRef<HTMLTextAreaElement>(null)
   const hlRef = useRef<HTMLPreElement>(null)
   const gutterRef = useRef<HTMLDivElement>(null)
+  const marksRef = useRef<HTMLDivElement>(null)
 
   const lines = useMemo(() => value.split('\n'), [value])
 
@@ -79,9 +102,27 @@ export function CodeEditor({ value, onChange, language, placeholder, varSuggest 
     if (!ta) return
     if (hlRef.current) hlRef.current.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`
     if (gutterRef.current) gutterRef.current.style.transform = `translateY(${-ta.scrollTop}px)`
+    if (marksRef.current) marksRef.current.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`
   }
 
   useEffect(sync, [value])
+
+  const find = useUi((s) => s.find)
+  const findActive = !!findable && find.open && find.scope === 'request' && !!find.query
+  const matches = useMemo(() => (findActive ? findMatches(value, find.query) : []), [findActive, value, find.query])
+  const currentMatch = normIndex(find.idx, matches.length)
+
+  useEffect(() => {
+    const ta = taRef.current
+    const m = matches[currentMatch]
+    if (!ta || !m) return
+    ta.scrollTo({
+      top: Math.max(0, 12 + m.line * ED_LINE_H - ta.clientHeight / 2),
+      left: Math.max(0, m.col * charWidth(ED_FONT) - ta.clientWidth / 2)
+    })
+    requestAnimationFrame(sync)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matches, currentMatch])
 
   const vars = useMergedVars()
   const suggest = useVarSuggest({
@@ -124,6 +165,18 @@ export function CodeEditor({ value, onChange, language, placeholder, varSuggest 
         </div>
       </div>
       <div className="ed-body">
+        <div className="ed-find-marks" ref={marksRef} aria-hidden>
+          {findActive && (
+            <FindMarksLayer
+              matches={matches}
+              current={currentMatch}
+              queryLen={find.query.length}
+              charW={charWidth(ED_FONT)}
+              lineH={ED_LINE_H}
+              padTop={12}
+            />
+          )}
+        </div>
         <pre className="ed-hl code-font" ref={hlRef} aria-hidden>
           {lines.map((l, i) => (
             <CodeLine key={i} text={l} language={language} />

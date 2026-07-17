@@ -35,6 +35,7 @@ interface UiState {
   /** collection whose variables modal is open */
   collectionVarsId: string | null
   newProfileOpen: boolean
+  find: { open: boolean; query: string; scope: 'response' | 'request'; idx: number }
   toasts: Toast[]
   contextMenu: ContextMenuState | null
   /** id of the sidebar node currently being renamed inline */
@@ -49,6 +50,8 @@ interface UiState {
   openEnvEditor: (selectId?: string) => void
   openCollectionVars: (collectionId: string) => void
   openNewProfile: () => void
+  setFind: (patch: Partial<UiState['find']>) => void
+  closeFind: () => void
   openContextMenu: (x: number, y: number, items: ContextItem[]) => void
   closeContextMenu: () => void
   setRenamingId: (id: string | null) => void
@@ -70,6 +73,7 @@ export const useUi = create<UiState>((set, get) => ({
   envEditorSelectId: null,
   collectionVarsId: null,
   newProfileOpen: false,
+  find: { open: false, query: '', scope: 'response', idx: 0 },
   toasts: [],
   contextMenu: null,
   renamingId: null,
@@ -85,6 +89,8 @@ export const useUi = create<UiState>((set, get) => ({
   openCollectionVars: (collectionId) =>
     set({ collectionVarsId: collectionId, profileOpen: false, shareOpen: false }),
   openNewProfile: () => set({ newProfileOpen: true, profileOpen: false, shareOpen: false }),
+  setFind: (patch) => set((s) => ({ find: { ...s.find, ...patch } })),
+  closeFind: () => set((s) => ({ find: { ...s.find, open: false } })),
   openContextMenu: (x, y, items) => set({ contextMenu: { x, y, items } }),
   closeContextMenu: () => set({ contextMenu: null }),
   setRenamingId: (renamingId) => set({ renamingId }),
@@ -99,6 +105,7 @@ export const useUi = create<UiState>((set, get) => ({
       s.envEditorOpen ||
       !!s.collectionVarsId ||
       s.newProfileOpen ||
+      s.find.open ||
       !!s.contextMenu
     if (any) {
       set({
@@ -109,6 +116,7 @@ export const useUi = create<UiState>((set, get) => ({
         envEditorOpen: false,
         collectionVarsId: null,
         newProfileOpen: false,
+        find: { ...s.find, open: false },
         contextMenu: null
       })
     }

@@ -2106,6 +2106,109 @@ textarea {
   color: var(--text2);
 }
 
+/* ---------- find in request/response ---------- */
+
+.find-bar {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+}
+
+.find-icon {
+  display: flex;
+  align-items: center;
+  color: var(--text3);
+}
+
+.find-bar input {
+  width: 230px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+}
+
+.find-bar .icon-btn {
+  width: 22px;
+  height: 22px;
+}
+
+.find-bar .icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.find-bar input::placeholder {
+  color: var(--text3);
+}
+
+.find-count {
+  font-size: 10.5px;
+  color: var(--text3);
+  min-width: 38px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.request-area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: none;
+}
+
+.tabs-find-btn {
+  margin-left: auto;
+  padding: 7px 4px;
+}
+
+.find-seg {
+  margin-left: 2px;
+}
+
+.find-seg .seg-btn {
+  padding: 2px 9px;
+  font-size: 10.5px;
+}
+
+.find-layer-host {
+  position: relative;
+}
+
+.find-mark {
+  position: absolute;
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.find-mark-current {
+  background: color-mix(in oklab, var(--warn) 45%, transparent);
+  outline: 1px solid var(--warn);
+}
+
+.ed-find-marks {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.response-pane {
+  position: relative;
+}
+
 /* ---------- variable autocomplete ---------- */
 
 .var-suggest {

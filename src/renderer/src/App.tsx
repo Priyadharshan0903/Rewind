@@ -77,6 +77,15 @@ export default function App(): React.JSX.Element {
           e.preventDefault()
           useApp.getState().saveDraft()
           break
+        case 'f': {
+          e.preventDefault()
+          ui.setView('runbook')
+          // Context-aware: ⌘F inside the body editor finds in the request.
+          const inEditor = document.activeElement?.classList.contains('ed-input')
+          ui.setFind({ open: true, scope: inEditor ? 'request' : 'response', idx: 0 })
+          if (inEditor) ui.setTab('body')
+          break
+        }
         case 'n': {
           e.preventDefault()
           const app = useApp.getState()
