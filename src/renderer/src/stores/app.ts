@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
-import { create } from 'zustand'
-import { varsFromEnv } from '@shared/interpolate'
+import { useMemo } from "react";
+import { create } from "zustand";
+import { varsFromEnv } from "@shared/interpolate";
 import type {
   AccentId,
   BootPayload,
@@ -12,11 +12,11 @@ import type {
   RequestNode,
   Settings,
   ThemeSetting,
-  Workspace
-} from '@shared/types'
-import { newId } from '@shared/id'
-import { paramsFromUrl } from '@shared/params'
-import type { FolderNode } from '@shared/types'
+  Workspace,
+} from "@shared/types";
+import { newId } from "@shared/id";
+import { paramsFromUrl } from "@shared/params";
+import type { FolderNode } from "@shared/types";
 import {
   cloneNode,
   collectRequestIds,
@@ -26,85 +26,96 @@ import {
   insertNode,
   mapRequest,
   removeNode,
-  renameFolder
-} from '@/lib/tree'
+  renameFolder,
+} from "@/lib/tree";
 
 export interface Selection {
-  collectionId: string
-  requestId: string
+  collectionId: string;
+  requestId: string;
 }
 
 interface AppState {
-  booted: boolean
-  workspace: Workspace | null
-  settings: Settings
-  environments: Environment[]
-  collections: Collection[]
-  selection: Selection | null
+  booted: boolean;
+  workspace: Workspace | null;
+  settings: Settings;
+  environments: Environment[];
+  collections: Collection[];
+  selection: Selection | null;
   /** Postman-style open request tabs; selection is always one of these (or null). */
-  openTabs: Selection[]
+  openTabs: Selection[];
   /** Unsaved edits per request id — nothing hits disk until saveDraft(). */
-  drafts: Record<string, RequestNode>
-  profiles: ProfileInfo[]
-  activeProfileId: string
+  drafts: Record<string, RequestNode>;
+  profiles: ProfileInfo[];
+  activeProfileId: string;
 
-  hydrate: () => Promise<void>
-  applyBoot: (boot: BootPayload) => void
-  setProfilesState: (state: ProfilesState) => void
-  setTheme: (theme: ThemeSetting) => void
-  setAccent: (accent: AccentId) => void
-  patchSettings: (patch: Partial<Settings>) => void
-  setActiveEnv: (envId: string) => void
-  selectRequest: (collectionId: string, requestId: string) => void
-  closeTab: (requestId: string) => void
-  updateRequest: (patch: Partial<RequestNode>) => void
-  saveDraft: () => void
-  discardDraft: () => void
-  replaceCollection: (collection: Collection) => void
+  hydrate: () => Promise<void>;
+  applyBoot: (boot: BootPayload) => void;
+  setProfilesState: (state: ProfilesState) => void;
+  setTheme: (theme: ThemeSetting) => void;
+  setAccent: (accent: AccentId) => void;
+  patchSettings: (patch: Partial<Settings>) => void;
+  setActiveEnv: (envId: string) => void;
+  selectRequest: (collectionId: string, requestId: string) => void;
+  closeTab: (requestId: string) => void;
+  updateRequest: (patch: Partial<RequestNode>) => void;
+  saveDraft: () => void;
+  discardDraft: () => void;
+  replaceCollection: (collection: Collection) => void;
 
-  updateEnvironments: (environments: Environment[]) => void
-  addEnvironment: () => string
-  removeEnvironment: (envId: string) => void
+  updateEnvironments: (environments: Environment[]) => void;
+  addEnvironment: () => string;
+  removeEnvironment: (envId: string) => void;
 
-  addCollection: () => void
+  addCollection: () => void;
   /** Adopt a collection created in the main process (OpenAPI import) and select its first request. */
-  adoptCollection: (collection: Collection) => void
-  renameCollection: (collectionId: string, name: string) => void
-  updateCollectionVariables: (collectionId: string, variables: KV[]) => void
-  addFolder: (collectionId: string) => void
-  renameFolderNode: (collectionId: string, folderId: string, name: string) => void
-  renameRequest: (collectionId: string, requestId: string, name: string) => void
-  addRequest: (collectionId: string, folderId: string | null) => void
-  deleteNode: (collectionId: string, nodeId: string) => void
-  duplicateNode: (collectionId: string, nodeId: string) => void
-  duplicateCollection: (collectionId: string) => void
-  deleteCollection: (collectionId: string) => void
+  adoptCollection: (collection: Collection) => void;
+  renameCollection: (collectionId: string, name: string) => void;
+  updateCollectionVariables: (collectionId: string, variables: KV[]) => void;
+  addFolder: (collectionId: string) => void;
+  renameFolderNode: (
+    collectionId: string,
+    folderId: string,
+    name: string,
+  ) => void;
+  renameRequest: (
+    collectionId: string,
+    requestId: string,
+    name: string,
+  ) => void;
+  addRequest: (collectionId: string, folderId: string | null) => void;
+  deleteNode: (collectionId: string, nodeId: string) => void;
+  duplicateNode: (collectionId: string, nodeId: string) => void;
+  duplicateCollection: (collectionId: string) => void;
+  deleteCollection: (collectionId: string) => void;
 }
 
 const DEFAULT_SETTINGS: Settings = {
-  theme: 'light',
-  accent: 'indigo',
+  theme: "light",
+  accent: "indigo",
   historyPanelOpen: true,
   sidebarOpen: true,
   responsePaneOpen: true,
   responseBodyLimitBytes: 1024 * 1024,
   requestPaneHeight: 196,
-  sidebarWidth: 236
-}
+  sidebarWidth: 236,
+};
 
-const saveTimers = new Map<string, ReturnType<typeof setTimeout>>()
+const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-function scheduleCollectionSave(collectionId: string, get: () => AppState): void {
-  const prior = saveTimers.get(collectionId)
-  if (prior) clearTimeout(prior)
+function scheduleCollectionSave(
+  collectionId: string,
+  get: () => AppState,
+): void {
+  const prior = saveTimers.get(collectionId);
+  if (prior) clearTimeout(prior);
   saveTimers.set(
     collectionId,
     setTimeout(() => {
-      saveTimers.delete(collectionId)
-      const collection = get().collections.find((c) => c.id === collectionId)
-      if (collection) void window.relay.saveCollection(collection)
-    }, 400)
-  )
+      saveTimers.delete(collectionId);
+      const collection = get().collections.find((c) => c.id === collectionId);
+      if (collection) void window.rewind.saveCollection(collection);
+    }, 400),
+  );
 }
 
 export const useApp = create<AppState>((set, get) => ({
@@ -117,37 +128,46 @@ export const useApp = create<AppState>((set, get) => ({
   openTabs: [],
   drafts: {},
   profiles: [],
-  activeProfileId: '',
+  activeProfileId: "",
 
   hydrate: async () => {
-    const [boot, profiles] = await Promise.all([window.relay.getBoot(), window.relay.listProfiles()])
-    get().applyBoot(boot)
-    get().setProfilesState(profiles)
+    const [boot, profiles] = await Promise.all([
+      window.rewind.getBoot(),
+      window.rewind.listProfiles(),
+    ]);
+    get().applyBoot(boot);
+    get().setProfilesState(profiles);
   },
 
-  setProfilesState: (state) => set({ profiles: state.profiles, activeProfileId: state.activeId }),
+  setProfilesState: (state) =>
+    set({ profiles: state.profiles, activeProfileId: state.activeId }),
 
   applyBoot: (boot) => {
     // Restore the tab set for this workspace; a request id is only valid with its current collection.
-    const owner = new Map<string, string>()
-    for (const c of boot.collections) for (const id of collectRequestIds(c.items)) owner.set(id, c.id)
-    let openTabs: Selection[] = []
-    let activeId: string | null = null
-    const stored = readStoredTabs(boot.workspace.id)
+    const owner = new Map<string, string>();
+    for (const c of boot.collections)
+      for (const id of collectRequestIds(c.items)) owner.set(id, c.id);
+    let openTabs: Selection[] = [];
+    let activeId: string | null = null;
+    const stored = readStoredTabs(boot.workspace.id);
     if (stored) {
       openTabs = stored.tabs
         .filter((t) => owner.has(t.requestId))
-        .map((t) => ({ collectionId: owner.get(t.requestId)!, requestId: t.requestId }))
-      activeId = stored.active
+        .map((t) => ({
+          collectionId: owner.get(t.requestId)!,
+          requestId: t.requestId,
+        }));
+      activeId = stored.active;
     }
-    let selection = openTabs.find((t) => t.requestId === activeId) ?? openTabs[0] ?? null
+    let selection =
+      openTabs.find((t) => t.requestId === activeId) ?? openTabs[0] ?? null;
     // First boot of a workspace (nothing stored): open its first request, like before.
     if (!selection && !stored) {
-      const first = boot.collections[0]
-      const req = first ? firstRequest(first.items) : null
+      const first = boot.collections[0];
+      const req = first ? firstRequest(first.items) : null;
       if (first && req) {
-        selection = { collectionId: first.id, requestId: req.id }
-        openTabs = [selection]
+        selection = { collectionId: first.id, requestId: req.id };
+        openTabs = [selection];
       }
     }
     set({
@@ -158,355 +178,453 @@ export const useApp = create<AppState>((set, get) => ({
       collections: boot.collections,
       selection,
       openTabs,
-      drafts: {}
-    })
-    persistTabs(get)
+      drafts: {},
+    });
+    persistTabs(get);
   },
 
   setTheme: (theme) => get().patchSettings({ theme }),
   setAccent: (accent) => get().patchSettings({ accent }),
 
   patchSettings: (patch) => {
-    const settings = { ...get().settings, ...patch }
-    set({ settings })
-    void window.relay.saveSettings(settings)
+    const settings = { ...get().settings, ...patch };
+    set({ settings });
+    void window.rewind.saveSettings(settings);
   },
 
   setActiveEnv: (envId) => {
-    const ws = get().workspace
-    if (!ws) return
-    set({ workspace: { ...ws, activeEnvironmentId: envId } })
-    void window.relay.setActiveEnv(envId)
+    const ws = get().workspace;
+    if (!ws) return;
+    set({ workspace: { ...ws, activeEnvironmentId: envId } });
+    void window.rewind.setActiveEnv(envId);
   },
 
   selectRequest: (collectionId, requestId) => {
-    const { openTabs } = get()
+    const { openTabs } = get();
     const tabs = openTabs.some((t) => t.requestId === requestId)
       ? openTabs
-      : [...openTabs, { collectionId, requestId }]
-    set({ selection: { collectionId, requestId }, openTabs: tabs })
-    persistTabs(get)
+      : [...openTabs, { collectionId, requestId }];
+    set({ selection: { collectionId, requestId }, openTabs: tabs });
+    persistTabs(get);
   },
 
   closeTab: (requestId) => {
-    const { openTabs, selection } = get()
-    const idx = openTabs.findIndex((t) => t.requestId === requestId)
-    if (idx === -1) return
-    const tabs = openTabs.filter((t) => t.requestId !== requestId)
-    let next = selection
+    const { openTabs, selection } = get();
+    const idx = openTabs.findIndex((t) => t.requestId === requestId);
+    if (idx === -1) return;
+    const tabs = openTabs.filter((t) => t.requestId !== requestId);
+    let next = selection;
     if (selection?.requestId === requestId) {
-      next = tabs[Math.min(idx, tabs.length - 1)] ?? null
+      next = tabs[Math.min(idx, tabs.length - 1)] ?? null;
     }
-    set({ openTabs: tabs, selection: next })
-    persistTabs(get)
+    set({ openTabs: tabs, selection: next });
+    persistTabs(get);
   },
 
   // Edits accumulate in a draft (Postman-style); disk is untouched until Save.
   updateRequest: (patch) => {
-    const { selection, collections, drafts } = get()
-    if (!selection) return
-    const collection = collections.find((c) => c.id === selection.collectionId)
-    const saved = collection ? findRequest(collection.items, selection.requestId) : null
-    const base = drafts[selection.requestId] ?? saved
-    if (!base) return
-    const next = { ...base, ...patch }
+    const { selection, collections, drafts } = get();
+    if (!selection) return;
+    const collection = collections.find((c) => c.id === selection.collectionId);
+    const saved = collection
+      ? findRequest(collection.items, selection.requestId)
+      : null;
+    const base = drafts[selection.requestId] ?? saved;
+    if (!base) return;
+    const next = { ...base, ...patch };
     // URL edits (typing, cURL paste) keep the params table in sync.
     if (patch.url !== undefined && patch.params === undefined) {
-      next.params = paramsFromUrl(patch.url, base.params)
+      next.params = paramsFromUrl(patch.url, base.params);
     }
     // Edited back to exactly the saved state → not dirty anymore.
     if (saved && JSON.stringify(next) === JSON.stringify(saved)) {
-      const rest = { ...drafts }
-      delete rest[selection.requestId]
-      set({ drafts: rest })
-      return
+      const rest = { ...drafts };
+      delete rest[selection.requestId];
+      set({ drafts: rest });
+      return;
     }
-    set({ drafts: { ...drafts, [selection.requestId]: next } })
+    set({ drafts: { ...drafts, [selection.requestId]: next } });
   },
 
   saveDraft: () => {
-    const { selection, collections, drafts } = get()
-    if (!selection) return
-    const draft = drafts[selection.requestId]
-    if (!draft) return
+    const { selection, collections, drafts } = get();
+    if (!selection) return;
+    const draft = drafts[selection.requestId];
+    if (!draft) return;
     const next = collections.map((c) =>
-      c.id === selection.collectionId ? { ...c, items: mapRequest(c.items, selection.requestId, () => draft) } : c
-    )
-    const rest = { ...drafts }
-    delete rest[selection.requestId]
-    set({ collections: next, drafts: rest })
-    const collection = next.find((c) => c.id === selection.collectionId)
-    if (collection) void window.relay.saveCollection(collection)
+      c.id === selection.collectionId
+        ? { ...c, items: mapRequest(c.items, selection.requestId, () => draft) }
+        : c,
+    );
+    const rest = { ...drafts };
+    delete rest[selection.requestId];
+    set({ collections: next, drafts: rest });
+    const collection = next.find((c) => c.id === selection.collectionId);
+    if (collection) void window.rewind.saveCollection(collection);
   },
 
   discardDraft: () => {
-    const { selection, drafts } = get()
-    if (!selection || !drafts[selection.requestId]) return
-    const rest = { ...drafts }
-    delete rest[selection.requestId]
-    set({ drafts: rest })
+    const { selection, drafts } = get();
+    if (!selection || !drafts[selection.requestId]) return;
+    const rest = { ...drafts };
+    delete rest[selection.requestId];
+    set({ drafts: rest });
   },
 
   replaceCollection: (collection) =>
-    set({ collections: get().collections.map((c) => (c.id === collection.id ? collection : c)) }),
+    set({
+      collections: get().collections.map((c) =>
+        c.id === collection.id ? collection : c,
+      ),
+    }),
 
   updateEnvironments: (environments) => {
-    set({ environments })
-    scheduleEnvSave(get)
+    set({ environments });
+    scheduleEnvSave(get);
   },
 
   addEnvironment: () => {
     const env: Environment = {
       id: newId(),
-      name: 'New environment',
-      dotColor: 'ok',
+      name: "New environment",
+      dotColor: "ok",
       variables: [
-        { id: newId(6), key: 'baseUrl', value: 'https://', enabled: true },
-        { id: newId(6), key: 'token', value: '', enabled: true }
-      ]
-    }
-    get().updateEnvironments([...get().environments, env])
-    return env.id
+        { id: newId(6), key: "baseUrl", value: "https://", enabled: true },
+        { id: newId(6), key: "token", value: "", enabled: true },
+      ],
+    };
+    get().updateEnvironments([...get().environments, env]);
+    return env.id;
   },
 
   removeEnvironment: (envId) => {
-    const { environments, workspace } = get()
-    if (environments.length <= 1) return
-    const next = environments.filter((e) => e.id !== envId)
-    get().updateEnvironments(next)
-    if (workspace?.activeEnvironmentId === envId) get().setActiveEnv(next[0].id)
+    const { environments, workspace } = get();
+    if (environments.length <= 1) return;
+    const next = environments.filter((e) => e.id !== envId);
+    get().updateEnvironments(next);
+    if (workspace?.activeEnvironmentId === envId)
+      get().setActiveEnv(next[0].id);
   },
 
   addCollection: () => {
-    const collection: Collection = { id: newId(), name: 'New collection', version: 'v1', items: [] }
-    set({ collections: [...get().collections, collection] })
-    void window.relay.saveCollection(collection)
+    const collection: Collection = {
+      id: newId(),
+      name: "New collection",
+      version: "v1",
+      items: [],
+    };
+    set({ collections: [...get().collections, collection] });
+    void window.rewind.saveCollection(collection);
   },
 
   adoptCollection: (collection) => {
-    set({ collections: [...get().collections.filter((c) => c.id !== collection.id), collection] })
-    const first = firstRequest(collection.items)
-    if (first) get().selectRequest(collection.id, first.id)
+    set({
+      collections: [
+        ...get().collections.filter((c) => c.id !== collection.id),
+        collection,
+      ],
+    });
+    const first = firstRequest(collection.items);
+    if (first) get().selectRequest(collection.id, first.id);
   },
 
-  renameCollection: (collectionId, name) => mutateCollection(collectionId, (c) => ({ ...c, name }), set, get),
+  renameCollection: (collectionId, name) =>
+    mutateCollection(collectionId, (c) => ({ ...c, name }), set, get),
 
   updateCollectionVariables: (collectionId, variables) =>
     mutateCollection(collectionId, (c) => ({ ...c, variables }), set, get),
 
   addFolder: (collectionId) => {
-    const folder: FolderNode = { id: newId(), type: 'folder', name: 'New folder', children: [] }
-    mutateCollection(collectionId, (c) => ({ ...c, items: [...c.items, folder] }), set, get)
+    const folder: FolderNode = {
+      id: newId(),
+      type: "folder",
+      name: "New folder",
+      children: [],
+    };
+    mutateCollection(
+      collectionId,
+      (c) => ({ ...c, items: [...c.items, folder] }),
+      set,
+      get,
+    );
   },
 
   renameFolderNode: (collectionId, folderId, name) =>
-    mutateCollection(collectionId, (c) => ({ ...c, items: renameFolder(c.items, folderId, name) }), set, get),
+    mutateCollection(
+      collectionId,
+      (c) => ({ ...c, items: renameFolder(c.items, folderId, name) }),
+      set,
+      get,
+    ),
 
   // Sidebar rename saves immediately (structural), without committing draft edits.
   renameRequest: (collectionId, requestId, name) => {
     mutateCollection(
       collectionId,
-      (c) => ({ ...c, items: mapRequest(c.items, requestId, (r) => ({ ...r, name })) }),
+      (c) => ({
+        ...c,
+        items: mapRequest(c.items, requestId, (r) => ({ ...r, name })),
+      }),
       set,
-      get
-    )
-    const { drafts, collections } = get()
-    const draft = drafts[requestId]
-    if (!draft) return
-    const renamed = { ...draft, name }
-    const collection = collections.find((c) => c.id === collectionId)
-    const saved = collection ? findRequest(collection.items, requestId) : null
+      get,
+    );
+    const { drafts, collections } = get();
+    const draft = drafts[requestId];
+    if (!draft) return;
+    const renamed = { ...draft, name };
+    const collection = collections.find((c) => c.id === collectionId);
+    const saved = collection ? findRequest(collection.items, requestId) : null;
     if (saved && JSON.stringify(renamed) === JSON.stringify(saved)) {
-      const rest = { ...drafts }
-      delete rest[requestId]
-      set({ drafts: rest })
+      const rest = { ...drafts };
+      delete rest[requestId];
+      set({ drafts: rest });
     } else {
-      set({ drafts: { ...drafts, [requestId]: renamed } })
+      set({ drafts: { ...drafts, [requestId]: renamed } });
     }
   },
 
   addRequest: (collectionId, folderId) => {
     const request: RequestNode = {
       id: newId(),
-      type: 'request',
-      name: 'New request',
-      method: 'GET',
-      url: '{{baseUrl}}/',
+      type: "request",
+      name: "New request",
+      method: "GET",
+      url: "{{baseUrl}}/",
       headers: [],
-      body: { mode: 'none', text: '' },
-      auth: { mode: 'inherit' },
-      scripts: { postResponse: '' },
-      examples: []
-    }
-    mutateCollection(collectionId, (c) => ({ ...c, items: insertNode(c.items, folderId, request) }), set, get)
-    get().selectRequest(collectionId, request.id)
+      body: { mode: "none", text: "" },
+      auth: { mode: "inherit" },
+      scripts: { postResponse: "" },
+      examples: [],
+    };
+    mutateCollection(
+      collectionId,
+      (c) => ({ ...c, items: insertNode(c.items, folderId, request) }),
+      set,
+      get,
+    );
+    get().selectRequest(collectionId, request.id);
   },
 
   deleteNode: (collectionId, nodeId) => {
-    mutateCollection(collectionId, (c) => ({ ...c, items: removeNode(c.items, nodeId) }), set, get)
-    pruneDrafts(set, get)
-    pruneTabs(set, get)
+    mutateCollection(
+      collectionId,
+      (c) => ({ ...c, items: removeNode(c.items, nodeId) }),
+      set,
+      get,
+    );
+    pruneDrafts(set, get);
+    pruneTabs(set, get);
   },
 
   duplicateNode: (collectionId, nodeId) => {
-    let createdId: string | null = null
+    let createdId: string | null = null;
     mutateCollection(
       collectionId,
       (c) => {
-        const { items, created } = duplicateIn(c.items, nodeId)
-        if (created?.type === 'request') createdId = created.id
-        return { ...c, items }
+        const { items, created } = duplicateIn(c.items, nodeId);
+        if (created?.type === "request") createdId = created.id;
+        return { ...c, items };
       },
       set,
-      get
-    )
-    if (createdId) get().selectRequest(collectionId, createdId)
+      get,
+    );
+    if (createdId) get().selectRequest(collectionId, createdId);
   },
 
   duplicateCollection: (collectionId) => {
-    const source = get().collections.find((c) => c.id === collectionId)
-    if (!source) return
+    const source = get().collections.find((c) => c.id === collectionId);
+    if (!source) return;
     const copy: Collection = {
       ...source,
       id: newId(),
       name: `${source.name} copy`,
-      items: source.items.map((n) => cloneTree(n))
-    }
-    set({ collections: [...get().collections, copy] })
-    void window.relay.saveCollection(copy)
+      items: source.items.map((n) => cloneTree(n)),
+    };
+    set({ collections: [...get().collections, copy] });
+    void window.rewind.saveCollection(copy);
   },
 
   deleteCollection: (collectionId) => {
-    const next = get().collections.filter((c) => c.id !== collectionId)
-    set({ collections: next })
-    pruneDrafts(set, get)
-    pruneTabs(set, get)
-    void window.relay.deleteCollection(collectionId)
-  }
-}))
+    const next = get().collections.filter((c) => c.id !== collectionId);
+    set({ collections: next });
+    pruneDrafts(set, get);
+    pruneTabs(set, get);
+    void window.rewind.deleteCollection(collectionId);
+  },
+}));
 
-type SetApp = (partial: Partial<AppState>) => void
-type GetApp = () => AppState
+type SetApp = (partial: Partial<AppState>) => void;
+type GetApp = () => AppState;
 
-function cloneTree(node: Parameters<typeof cloneNode>[0]): ReturnType<typeof cloneNode> {
-  return cloneNode(node, false)
+function cloneTree(
+  node: Parameters<typeof cloneNode>[0],
+): ReturnType<typeof cloneNode> {
+  return cloneNode(node, false);
 }
 
-function mutateCollection(collectionId: string, fn: (c: Collection) => Collection, set: SetApp, get: GetApp): void {
-  set({ collections: get().collections.map((c) => (c.id === collectionId ? fn(c) : c)) })
-  scheduleCollectionSave(collectionId, get)
+function mutateCollection(
+  collectionId: string,
+  fn: (c: Collection) => Collection,
+  set: SetApp,
+  get: GetApp,
+): void {
+  set({
+    collections: get().collections.map((c) =>
+      c.id === collectionId ? fn(c) : c,
+    ),
+  });
+  scheduleCollectionSave(collectionId, get);
 }
 
 /** Drop drafts whose request no longer exists anywhere. */
 function pruneDrafts(set: SetApp, get: GetApp): void {
-  const { drafts, collections } = get()
-  const alive = new Set(collections.flatMap((c) => collectRequestIds(c.items)))
-  const next = Object.fromEntries(Object.entries(drafts).filter(([id]) => alive.has(id)))
-  if (Object.keys(next).length !== Object.keys(drafts).length) set({ drafts: next })
+  const { drafts, collections } = get();
+  const alive = new Set(collections.flatMap((c) => collectRequestIds(c.items)));
+  const next = Object.fromEntries(
+    Object.entries(drafts).filter(([id]) => alive.has(id)),
+  );
+  if (Object.keys(next).length !== Object.keys(drafts).length)
+    set({ drafts: next });
 }
 
 /** Drop tabs whose request no longer exists; move the selection to the nearest surviving tab. */
 function pruneTabs(set: SetApp, get: GetApp): void {
-  const { openTabs, selection, collections } = get()
-  const alive = new Set(collections.flatMap((c) => collectRequestIds(c.items)))
-  const tabs = openTabs.filter((t) => alive.has(t.requestId))
-  const selectionAlive = !selection || alive.has(selection.requestId)
-  if (tabs.length === openTabs.length && selectionAlive) return
-  let next = selectionAlive ? selection : null
+  const { openTabs, selection, collections } = get();
+  const alive = new Set(collections.flatMap((c) => collectRequestIds(c.items)));
+  const tabs = openTabs.filter((t) => alive.has(t.requestId));
+  const selectionAlive = !selection || alive.has(selection.requestId);
+  if (tabs.length === openTabs.length && selectionAlive) return;
+  let next = selectionAlive ? selection : null;
   if (!next && selection) {
-    const idx = openTabs.findIndex((t) => t.requestId === selection.requestId)
-    next = tabs[Math.min(Math.max(idx, 0), tabs.length - 1)] ?? null
+    const idx = openTabs.findIndex((t) => t.requestId === selection.requestId);
+    next = tabs[Math.min(Math.max(idx, 0), tabs.length - 1)] ?? null;
   }
-  set({ openTabs: tabs, selection: next })
-  persistTabs(get)
+  set({ openTabs: tabs, selection: next });
+  persistTabs(get);
 }
 
 interface StoredTabs {
-  tabs: Selection[]
-  active: string | null
+  tabs: Selection[];
+  active: string | null;
 }
 
 function tabsKey(workspaceId: string): string {
-  return `relay:tabs:${workspaceId}`
+  return `rewind:tabs:${workspaceId}`;
 }
 
 function readStoredTabs(workspaceId: string): StoredTabs | null {
   try {
-    const raw = localStorage.getItem(tabsKey(workspaceId))
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<StoredTabs>
-    return { tabs: Array.isArray(parsed.tabs) ? parsed.tabs : [], active: parsed.active ?? null }
+    const raw = localStorage.getItem(tabsKey(workspaceId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StoredTabs>;
+    return {
+      tabs: Array.isArray(parsed.tabs) ? parsed.tabs : [],
+      active: parsed.active ?? null,
+    };
   } catch {
-    return null
+    return null;
   }
 }
 
 function persistTabs(get: GetApp): void {
-  const { workspace, openTabs, selection } = get()
-  if (!workspace) return
+  const { workspace, openTabs, selection } = get();
+  if (!workspace) return;
   try {
     localStorage.setItem(
       tabsKey(workspace.id),
-      JSON.stringify({ tabs: openTabs, active: selection?.requestId ?? null } satisfies StoredTabs)
-    )
+      JSON.stringify({
+        tabs: openTabs,
+        active: selection?.requestId ?? null,
+      } satisfies StoredTabs),
+    );
   } catch {
     /* storage full or unavailable — tabs just won't persist */
   }
 }
 
 /** The request as the user sees it: draft if present, else the saved node. */
-export function effectiveRequest(state: AppState, collectionId: string, requestId: string): RequestNode | null {
-  const draft = state.drafts[requestId]
-  if (draft) return draft
-  const collection = state.collections.find((c) => c.id === collectionId)
-  return collection ? findRequest(collection.items, requestId) : null
+export function effectiveRequest(
+  state: AppState,
+  collectionId: string,
+  requestId: string,
+): RequestNode | null {
+  const draft = state.drafts[requestId];
+  if (draft) return draft;
+  const collection = state.collections.find((c) => c.id === collectionId);
+  return collection ? findRequest(collection.items, requestId) : null;
 }
 
-let envTimer: ReturnType<typeof setTimeout> | null = null
+let envTimer: ReturnType<typeof setTimeout> | null = null;
 function scheduleEnvSave(get: GetApp): void {
-  if (envTimer) clearTimeout(envTimer)
+  if (envTimer) clearTimeout(envTimer);
   envTimer = setTimeout(() => {
-    envTimer = null
-    void window.relay.saveEnvironments(get().environments)
-  }, 300)
+    envTimer = null;
+    void window.rewind.saveEnvironments(get().environments);
+  }, 300);
 }
 
 export function useActiveEnv(): Environment | null {
-  const workspace = useApp((s) => s.workspace)
-  const environments = useApp((s) => s.environments)
-  return environments.find((e) => e.id === workspace?.activeEnvironmentId) ?? environments[0] ?? null
+  const workspace = useApp((s) => s.workspace);
+  const environments = useApp((s) => s.environments);
+  return (
+    environments.find((e) => e.id === workspace?.activeEnvironmentId) ??
+    environments[0] ??
+    null
+  );
 }
 
 /** Merged variables for a state snapshot: collection first, env overrides. */
-export function mergedVars(state: AppState, collectionId?: string | null): Record<string, string> {
-  const colId = collectionId ?? state.selection?.collectionId
-  const collection = state.collections.find((c) => c.id === colId)
+export function mergedVars(
+  state: AppState,
+  collectionId?: string | null,
+): Record<string, string> {
+  const colId = collectionId ?? state.selection?.collectionId;
+  const collection = state.collections.find((c) => c.id === colId);
   const env =
-    state.environments.find((e) => e.id === state.workspace?.activeEnvironmentId) ?? state.environments[0] ?? null
-  return { ...varsFromEnv(collection?.variables ?? []), ...varsFromEnv(env?.variables ?? []) }
+    state.environments.find(
+      (e) => e.id === state.workspace?.activeEnvironmentId,
+    ) ??
+    state.environments[0] ??
+    null;
+  return {
+    ...varsFromEnv(collection?.variables ?? []),
+    ...varsFromEnv(env?.variables ?? []),
+  };
 }
 
 /** Reactive merged variables for the current selection (collection + active env). */
 export function useMergedVars(): Record<string, string> {
-  const selection = useApp((s) => s.selection)
-  const collections = useApp((s) => s.collections)
-  const workspace = useApp((s) => s.workspace)
-  const environments = useApp((s) => s.environments)
+  const selection = useApp((s) => s.selection);
+  const collections = useApp((s) => s.collections);
+  const workspace = useApp((s) => s.workspace);
+  const environments = useApp((s) => s.environments);
   return useMemo(() => {
-    const collection = collections.find((c) => c.id === selection?.collectionId)
-    const env = environments.find((e) => e.id === workspace?.activeEnvironmentId) ?? environments[0] ?? null
-    return { ...varsFromEnv(collection?.variables ?? []), ...varsFromEnv(env?.variables ?? []) }
-  }, [selection, collections, workspace, environments])
+    const collection = collections.find(
+      (c) => c.id === selection?.collectionId,
+    );
+    const env =
+      environments.find((e) => e.id === workspace?.activeEnvironmentId) ??
+      environments[0] ??
+      null;
+    return {
+      ...varsFromEnv(collection?.variables ?? []),
+      ...varsFromEnv(env?.variables ?? []),
+    };
+  }, [selection, collections, workspace, environments]);
 }
 
-export function useSelectedRequest(): { collection: Collection; request: RequestNode; dirty: boolean } | null {
-  const selection = useApp((s) => s.selection)
-  const collections = useApp((s) => s.collections)
-  const drafts = useApp((s) => s.drafts)
-  if (!selection) return null
-  const collection = collections.find((c) => c.id === selection.collectionId)
-  if (!collection) return null
-  const draft = drafts[selection.requestId]
-  const request = draft ?? findRequest(collection.items, selection.requestId)
-  return request ? { collection, request, dirty: !!draft } : null
+export function useSelectedRequest(): {
+  collection: Collection;
+  request: RequestNode;
+  dirty: boolean;
+} | null {
+  const selection = useApp((s) => s.selection);
+  const collections = useApp((s) => s.collections);
+  const drafts = useApp((s) => s.drafts);
+  if (!selection) return null;
+  const collection = collections.find((c) => c.id === selection.collectionId);
+  if (!collection) return null;
+  const draft = drafts[selection.requestId];
+  const request = draft ?? findRequest(collection.items, selection.requestId);
+  return request ? { collection, request, dirty: !!draft } : null;
 }

@@ -1,5 +1,5 @@
-import { contextBridge, ipcRenderer } from 'electron'
-import { IPC } from '../shared/ipc'
+import { contextBridge, ipcRenderer } from "electron";
+import { IPC } from "../shared/ipc";
 import type {
   BootPayload,
   Collection,
@@ -13,51 +13,71 @@ import type {
   RunsQuery,
   RunSummary,
   SendPayload,
-  Settings
-} from '../shared/types'
+  Settings,
+} from "../shared/types";
 
-type ProfilesWithBoot = ProfilesState & { boot: BootPayload }
+type ProfilesWithBoot = ProfilesState & { boot: BootPayload };
 
 const api = {
   getBoot: (): Promise<BootPayload> => ipcRenderer.invoke(IPC.workspaceGet),
-  renameWorkspace: (name: string): Promise<void> => ipcRenderer.invoke(IPC.workspaceRename, name),
-  saveSettings: (settings: Settings): Promise<void> => ipcRenderer.invoke(IPC.settingsSave, settings),
-  saveCollection: (collection: Collection): Promise<void> => ipcRenderer.invoke(IPC.collectionSave, collection),
-  deleteCollection: (collectionId: string): Promise<void> => ipcRenderer.invoke(IPC.collectionDelete, collectionId),
+  renameWorkspace: (name: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.workspaceRename, name),
+  saveSettings: (settings: Settings): Promise<void> =>
+    ipcRenderer.invoke(IPC.settingsSave, settings),
+  saveCollection: (collection: Collection): Promise<void> =>
+    ipcRenderer.invoke(IPC.collectionSave, collection),
+  deleteCollection: (collectionId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.collectionDelete, collectionId),
   exportCollection: (collectionId: string): Promise<ExportResult> =>
     ipcRenderer.invoke(IPC.collectionExport, collectionId),
-  saveEnvironments: (envs: Environment[]): Promise<void> => ipcRenderer.invoke(IPC.envSave, envs),
-  setActiveEnv: (envId: string): Promise<void> => ipcRenderer.invoke(IPC.envSetActive, envId),
-  send: (payload: SendPayload): Promise<Run> => ipcRenderer.invoke(IPC.httpSend, payload),
-  cancel: (sendId: string): Promise<void> => ipcRenderer.invoke(IPC.httpCancel, sendId),
-  listRuns: (query?: RunsQuery): Promise<RunSummary[]> => ipcRenderer.invoke(IPC.runsList, query ?? {}),
-  getRun: (id: string): Promise<Run | null> => ipcRenderer.invoke(IPC.runsGet, id),
-  saveExample: (runId: string): Promise<Collection | null> => ipcRenderer.invoke(IPC.runsSaveExample, runId),
+  saveEnvironments: (envs: Environment[]): Promise<void> =>
+    ipcRenderer.invoke(IPC.envSave, envs),
+  setActiveEnv: (envId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.envSetActive, envId),
+  send: (payload: SendPayload): Promise<Run> =>
+    ipcRenderer.invoke(IPC.httpSend, payload),
+  cancel: (sendId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.httpCancel, sendId),
+  listRuns: (query?: RunsQuery): Promise<RunSummary[]> =>
+    ipcRenderer.invoke(IPC.runsList, query ?? {}),
+  getRun: (id: string): Promise<Run | null> =>
+    ipcRenderer.invoke(IPC.runsGet, id),
+  saveExample: (runId: string): Promise<Collection | null> =>
+    ipcRenderer.invoke(IPC.runsSaveExample, runId),
   exportBundle: (opts: { includeHistory: boolean }): Promise<ExportResult> =>
     ipcRenderer.invoke(IPC.transferExport, opts),
-  importBundle: (): Promise<ImportResult> => ipcRenderer.invoke(IPC.transferImport),
-  openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC.shellOpenExternal, url),
-  listProfiles: (): Promise<ProfilesState> => ipcRenderer.invoke(IPC.profilesList),
-  createProfile: (name: string): Promise<ProfilesWithBoot> => ipcRenderer.invoke(IPC.profilesCreate, name),
-  switchProfile: (id: string): Promise<ProfilesWithBoot> => ipcRenderer.invoke(IPC.profilesSwitch, id),
+  importBundle: (): Promise<ImportResult> =>
+    ipcRenderer.invoke(IPC.transferImport),
+  openExternal: (url: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.shellOpenExternal, url),
+  listProfiles: (): Promise<ProfilesState> =>
+    ipcRenderer.invoke(IPC.profilesList),
+  createProfile: (name: string): Promise<ProfilesWithBoot> =>
+    ipcRenderer.invoke(IPC.profilesCreate, name),
+  switchProfile: (id: string): Promise<ProfilesWithBoot> =>
+    ipcRenderer.invoke(IPC.profilesSwitch, id),
   renameProfile: (id: string, name: string): Promise<ProfilesState> =>
     ipcRenderer.invoke(IPC.profilesRename, id, name),
-  deleteProfile: (id: string): Promise<ProfilesState> => ipcRenderer.invoke(IPC.profilesDelete, id),
-  importOpenApi: (): Promise<OpenApiImportResult> => ipcRenderer.invoke(IPC.openapiImport),
-  importPostman: (): Promise<PostmanImportResult> => ipcRenderer.invoke(IPC.postmanImport),
-  pickFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.dialogPickFile),
+  deleteProfile: (id: string): Promise<ProfilesState> =>
+    ipcRenderer.invoke(IPC.profilesDelete, id),
+  importOpenApi: (): Promise<OpenApiImportResult> =>
+    ipcRenderer.invoke(IPC.openapiImport),
+  importPostman: (): Promise<PostmanImportResult> =>
+    ipcRenderer.invoke(IPC.postmanImport),
+  pickFile: (): Promise<string | null> =>
+    ipcRenderer.invoke(IPC.dialogPickFile),
   onRunAppended: (cb: (summary: RunSummary) => void): (() => void) => {
-    const listener = (_e: unknown, summary: RunSummary): void => cb(summary)
-    ipcRenderer.on(IPC.runsAppended, listener)
-    return () => ipcRenderer.removeListener(IPC.runsAppended, listener)
+    const listener = (_e: unknown, summary: RunSummary): void => cb(summary);
+    ipcRenderer.on(IPC.runsAppended, listener);
+    return () => ipcRenderer.removeListener(IPC.runsAppended, listener);
   },
   onCloseActiveTab: (cb: () => void): (() => void) => {
-    const listener = (): void => cb()
-    ipcRenderer.on(IPC.tabsCloseActive, listener)
-    return () => ipcRenderer.removeListener(IPC.tabsCloseActive, listener)
-  }
-}
+    const listener = (): void => cb();
+    ipcRenderer.on(IPC.tabsCloseActive, listener);
+    return () => ipcRenderer.removeListener(IPC.tabsCloseActive, listener);
+  },
+};
 
-export type RelayApi = typeof api
+export type RelayApi = typeof api;
 
-contextBridge.exposeInMainWorld('relay', api)
+contextBridge.exposeInMainWorld("rewind", api);

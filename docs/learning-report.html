@@ -462,11 +462,11 @@
       <div class="call model">
         <p class="k">◆ The five load-bearing ideas</p>
         <ul>
-          <li><strong>Two worlds, one bridge.</strong> The UI (renderer) is a sandboxed web page that cannot touch the disk or network. All privileged work happens in the Electron <em>main</em> process, reached only through a typed <code>window.relay.*</code> bridge.</li>
+          <li><strong>Two worlds, one bridge.</strong> The UI (renderer) is a sandboxed web page that cannot touch the disk or network. All privileged work happens in the Electron <em>main</em> process, reached only through a typed <code>window.rewind.*</code> bridge.</li>
           <li><strong>Edits live in memory as “drafts.”</strong> Typing in the editor never writes to disk. It updates a <code>drafts[requestId]</code> override. Disk is touched only on explicit Save or on structural changes.</li>
           <li><strong>Two-phase variable resolution.</strong> The UI previews <code>{{vars}}</code> with dynamic values left <em>literal</em>; the main process does the real substitution at send time — so what you see is what gets sent.</li>
           <li><strong>Local-first, crash-safe storage.</strong> Everything is JSON/JSONL under Electron’s <code>userData</code>, written atomically (temp → fsync → rename) with corrupt-file quarantine.</li>
-          <li><strong>The app used to be called “Relay.”</strong> You’ll see <code>window.relay</code>, <code>.relay</code> bundles, and <code>relay:*</code> keys everywhere — kept deliberately for data compatibility. Mentally read “relay” as “the bridge.”</li>
+          <li><strong>The app used to be called “Rewind.”</strong> You’ll see <code>window.rewind</code>, <code>.rewind</code> bundles, and <code>rewind:*</code> keys everywhere — kept deliberately for data compatibility. Mentally read “relay” as “the bridge.”</li>
         </ul>
       </div>
       <p>The rest of this report is a guided descent: start at the process boundary, work down through the data model and state, then follow a single <span class="m m-post">POST</span> from the moment you press <strong>Send</strong> all the way to a line appended in a run log — and back up to the response you see.</p>
@@ -488,7 +488,7 @@ flowchart LR
       UI["React components"] --> ST["Zustand stores<br/>useApp · useRuns · useUi"]
     end
     subgraph P["PRELOAD · contextBridge"]
-      BR["window.relay<br/>(typed API)"]
+      BR["window.rewind<br/>(typed API)"]
     end
     subgraph M["MAIN · full Node.js"]
       direction TB
@@ -515,7 +515,7 @@ flowchart LR
         </table>
       </div>
 
-      <p>The security posture is textbook-hardened Electron, set in <span class="ref">window.ts:35</span>: <code>contextIsolation: true</code>, <code>nodeIntegration: false</code>, <code>sandbox: true</code>, <code>webSecurity: true</code>. Navigation is frozen — <code>will-navigate</code> is always prevented and new windows open in the OS browser instead. The renderer is welded to its own document; the <code>relay</code> preload API is its <em>entire</em> outside world.</p>
+      <p>The security posture is textbook-hardened Electron, set in <span class="ref">window.ts:35</span>: <code>contextIsolation: true</code>, <code>nodeIntegration: false</code>, <code>sandbox: true</code>, <code>webSecurity: true</code>. Navigation is frozen — <code>will-navigate</code> is always prevented and new windows open in the OS browser instead. The renderer is welded to its own document; the <code>rewind</code> preload API is its <em>entire</em> outside world.</p>
 
       <div class="call trace">
         <p class="k">▸ Trace it yourself</p>
@@ -531,7 +531,7 @@ flowchart LR
       </div>
       <p>Because the renderer can’t act on its own, <em>every</em> capability is a named IPC channel. The channel names are a single frozen source of truth in <span class="ref">src/shared/ipc.ts</span>, imported by both sides so a typo can’t silently drift the two apart.</p>
 
-      <p>The preload layer (<span class="ref">src/preload/index.ts</span>) wraps each channel in a one-line typed method and exposes them as <code>window.relay</code> via <code>contextBridge.exposeInMainWorld</code>. The renderer’s <code>index.d.ts</code> augments the global <code>Window</code> so you get full type-safety with zero runtime coupling:</p>
+      <p>The preload layer (<span class="ref">src/preload/index.ts</span>) wraps each channel in a one-line typed method and exposes them as <code>window.rewind</code> via <code>contextBridge.exposeInMainWorld</code>. The renderer’s <code>index.d.ts</code> augments the global <code>Window</code> so you get full type-safety with zero runtime coupling:</p>
       <pre><code><span class="tok-c">// preload — every method is this thin</span>
 send: (payload) => ipcRenderer.<span class="tok-f">invoke</span>(IPC.httpSend, payload),
 <span class="tok-c">// two subscriptions return an unsubscribe fn (removeListener, not removeAll)</span>
@@ -549,7 +549,7 @@ onRunAppended: (cb) => { <span class="tok-c">/* subscribe to push channel */</sp
             <tr><td><code>collection:save / :delete / :export</code></td><td class="ch">One JSON file per collection</td></tr>
             <tr><td><code>env:save / :setActive</code></td><td class="ch">Environments and the active-env pointer</td></tr>
             <tr><td><code>runs:list / :get / :saveExample</code></td><td class="ch">Read run history; freeze a response onto a request</td></tr>
-            <tr><td><code>transfer:export / :import</code></td><td class="ch"><code>.relay</code> workspace bundles</td></tr>
+            <tr><td><code>transfer:export / :import</code></td><td class="ch"><code>.rewind</code> workspace bundles</td></tr>
             <tr><td><code>openapi:import · postman:import</code></td><td class="ch">Import pipelines</td></tr>
             <tr><td><code>profiles:*</code></td><td class="ch">List / create / switch / rename / delete workspaces</td></tr>
             <tr><td><code>runs:appended</code> <em>(push)</em></td><td class="ch">Broadcast a new run summary to every window — live history</td></tr>
@@ -635,7 +635,7 @@ flowchart TD
           </tbody>
         </table>
       </div>
-      <p>Open tabs are restored on boot from <code>localStorage['relay:tabs:&lt;workspaceId&gt;']</code>, filtered down to request ids that still exist. Sending a request never persists it.</p>
+      <p>Open tabs are restored on boot from <code>localStorage['rewind:tabs:&lt;workspaceId&gt;']</code>, filtered down to request ids that still exist. Sending a request never persists it.</p>
     </section>
 
     <!-- 05 -->
@@ -684,7 +684,7 @@ flowchart TD
 sequenceDiagram
     participant U as UI (Send btn / ⌘↵)
     participant RS as useRuns.send
-    participant BR as window.relay
+    participant BR as window.rewind
     participant H as http:send handler
     participant HC as sendHttp (fetch)
     participant SC as runScript (vm)

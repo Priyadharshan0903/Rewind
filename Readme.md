@@ -2,7 +2,7 @@
 
 A local-first API client for macOS, built with Electron. Every run is stored on disk as plain JSON — nothing leaves your machine.
 
-Implemented from the claude.ai/design mock **Relay Runbook** (design project `3e859c1b`); app name from direction 1c ("Rewind — any API call, replayed") and icon from mark 12a ("Exchange", REQ ⇄ RES) of **App Name & Icon**, restyled to a white tile with the mark in `#5B6AE0`.
+Implemented from the claude.ai/design mock **Rewind Runbook** (design project `3e859c1b`); app name from direction 1c ("Rewind — any API call, replayed") and icon from mark 12a ("Exchange", REQ ⇄ RES) of **App Name & Icon**, restyled to a white tile with the mark in `#5B6AE0`.
 
 ## Features
 
@@ -13,10 +13,10 @@ Implemented from the claude.ai/design mock **Relay Runbook** (design project `3e
 - **History page** — all runs grouped by day with status/method filters and a read-only request/response snapshot; "Open in Runbook" jumps back to the request.
 - **Environments & variables** — Postman-style `{{baseUrl}}` / `{{token}}` variables (legacy `${var}` still resolves), edited in a dedicated Environments editor (env pill → "Edit variables…", or `⌘E`): add/remove environments and variables, set the active one. **Collection variables** too (right-click a collection → Edit variables) — they apply to every request in the collection, and environment variables override them on name collision, same precedence as Postman. Post-response scripts (`vars.set("chargeId", res.json.id)`, `assert(res.status === 201)`) run sandboxed in the main process and write variables back into the active environment. Dynamic `{{$uuid}}` / `{{$timestamp}}` resolve fresh at send time (used for `Idempotency-Key`).
 - **OpenAPI import** — the sidebar's "Import OpenAPI" button (or right-click empty space) takes an OpenAPI 3.x / Swagger 2.0 spec in JSON or YAML and builds a collection: folders from tags, `{{baseUrl}}` collection variable from `servers` (or host/basePath), path & required query/header params as `{{variables}}`, and JSON bodies generated from schemas (`$ref`, enums, formats, examples).
-- **Postman import** — "Import from Postman" (sidebar footer or right-click empty space) accepts any Postman JSON export, several files at once: Collection v2.0/v2.1, environment/globals files, or the full Settings → Data → "Export data" dump (v1 collections). Folders, headers (incl. disabled), raw/urlencoded/form-data (incl. file fields)/GraphQL bodies, bearer/basic/api-key auth (mapped to native auth modes, variables intact) and collection variables all come across; `{{var}}` syntax is shared, `:pathVars` become `{{pathVars}}`, `{{$guid}}`→`{{$uuid}}`, and pm.* test scripts are kept as comments in the Scripts tab. Environments are appended, never replaced; anything unsupported is skipped with a warning toast.
+- **Postman import** — "Import from Postman" (sidebar footer or right-click empty space) accepts any Postman JSON export, several files at once: Collection v2.0/v2.1, environment/globals files, or the full Settings → Data → "Export data" dump (v1 collections). Folders, headers (incl. disabled), raw/urlencoded/form-data (incl. file fields)/GraphQL bodies, bearer/basic/api-key auth (mapped to native auth modes, variables intact) and collection variables all come across; `{{var}}` syntax is shared, `:pathVars` become `{{pathVars}}`, `{{$guid}}`→`{{$uuid}}`, and pm.\* test scripts are kept as comments in the Scripts tab. Environments are appended, never replaced; anything unsupported is skipped with a warning toast.
 - **Collections CRUD** — create collections (+ in the sidebar header), folders and requests (hover + buttons, `⌘N`, or right-click). Right-click context menus everywhere: collections (Add request / Add folder / Rename / Duplicate / Export / Delete), folders (Add request / Add folder / Rename / Duplicate / Delete), requests (Send / Copy as cURL / Rename / Duplicate / Delete). Double-click renames inline.
 - **Explicit saves, Postman-style** — edits to a request live in an unsaved draft (orange dot in the title row and sidebar) with **Save (`⌘S`)** / **Discard** buttons; nothing touches disk until you save. Send always uses what you see, saved or not.
-- **Export / import** — bundle collections, environments and (optionally) run history into one plain-JSON `.relay` file; import it on any machine, no account needed.
+- **Export / import** — bundle collections, environments and (optionally) run history into one plain-JSON `.rewind` file; import it on any machine, no account needed.
 - **Find in request/response** — `⌘F` (or the ⌕ buttons) opens a find bar anchored top-right of the request area with **Response | Request** scope tabs: every match highlighted, current match emphasized and auto-scrolled into view, `n/total` count, Enter/Shift+Enter (or the chevrons) to navigate, Esc closes. `⌘F` inside the body editor pre-selects the Request scope.
 - **Variable autocomplete & hover peek** — type `{{` in the URL bar, a header value, or the body editor and a scrollable dropdown lists every available variable (collection + environment + dynamic `$uuid`/`$timestamp`) with live value previews; filter as you type, arrows + Enter/Tab to insert. Hover any `{{variable}}` in those same fields and a Postman-style card shows its resolved value and scope (environment / collection / dynamic / unresolved) — edit the value right there, or add an unresolved variable to the active environment with one click.
 - **Profiles** — multiple isolated local workspaces (own collections, environments, history), stored under `profiles/` in the app data folder. Create/switch/delete from the profile chip menu; pre-profile data migrates automatically on first launch.
@@ -24,7 +24,7 @@ Implemented from the claude.ai/design mock **Relay Runbook** (design project `3e
 
 ## Data on disk
 
-Everything lives under `~/Library/Application Support/Rewind/` as human-readable JSON (a pre-rename `Relay/` folder is migrated automatically on first launch):
+Everything lives under `~/Library/Application Support/Rewind/` as human-readable JSON (a pre-rename `Rewind/` folder is migrated automatically on first launch):
 
 ```
 settings.json                      global: theme, accent, panel state, body-size limit
@@ -52,7 +52,7 @@ Note: unset `ELECTRON_RUN_AS_NODE` before launching Electron from tooling that s
 ## Architecture
 
 - `src/main` — window (hiddenInset titlebar, sandboxed renderer), all fs/HTTP/dialog work, `node:vm` script runner, per-day JSONL run log.
-- `src/preload` — `window.relay`, a thin typed `contextBridge` facade over `ipcRenderer.invoke`.
+- `src/preload` — `window.rewind`, a thin typed `contextBridge` facade over `ipcRenderer.invoke`.
 - `src/renderer` — React + zustand; hand-rolled JSON editor (transparent textarea over highlighted `<pre>`), tokenizer shared by editor/viewer/diff, line diff via `diff` + changed-row pairing.
 - `src/shared` — types, IPC channel names, `${var}` interpolation and cURL generation used by both processes so preview and send can't drift.
 

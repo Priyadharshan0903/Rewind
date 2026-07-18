@@ -1,9 +1,9 @@
-import type { RelayApi } from './index'
+import type { RelayApi } from "./index";
 
 declare global {
   interface Window {
-    relay: RelayApi
+    rewind: RelayApi;
   }
 }
 
-export {}
+export {};
