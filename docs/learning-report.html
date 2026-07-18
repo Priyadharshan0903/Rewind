@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rewind — Code Flow Learning Report</title>
+<style>
+  :root {
+    --bg: #f4f3ef;
+    --surface: #ffffff;
+    --surface-2: #faf9f6;
+    --text: #1b1b22;
+    --text-2: #55555f;
+    --text-3: #8c8c96;
+    --border: #e6e3dc;
+    --border-2: #efece6;
+    --accent: #5a5fe0;
+    --accent-2: #4a4fca;
+    --accent-soft: rgba(90, 95, 224, 0.09);
+    --accent-line: rgba(90, 95, 224, 0.22);
+    --get: #2f9e6b;
+    --post: #3b6fd4;
+    --put: #c0872a;
+    --del: #d0503f;
+    --warn-bg: rgba(192, 135, 42, 0.10);
+    --warn-line: rgba(192, 135, 42, 0.35);
+    --code-bg: #f6f5f1;
+    --code-border: #e8e5de;
+    --shadow: 0 1px 2px rgba(20, 20, 30, 0.04), 0 6px 24px rgba(20, 20, 30, 0.05);
+
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    --maxw: 760px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151517;
+      --surface: #1d1d21;
+      --surface-2: #232329;
+      --text: #ececf0;
+      --text-2: #a2a2ad;
+      --text-3: #6a6a76;
+      --border: #2c2c33;
+      --border-2: #26262c;
+      --accent: #8b8ef5;
+      --accent-2: #a3a5f8;
+      --accent-soft: rgba(139, 142, 245, 0.12);
+      --accent-line: rgba(139, 142, 245, 0.28);
+      --get: #4ec38c;
+      --post: #6f9df0;
+      --put: #e0aa54;
+      --del: #ec6d5c;
+      --warn-bg: rgba(224, 170, 84, 0.10);
+      --warn-line: rgba(224, 170, 84, 0.32);
+      --code-bg: #191920;
+      --code-border: #2b2b33;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 30px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f4f3ef; --surface: #ffffff; --surface-2: #faf9f6; --text: #1b1b22;
+    --text-2: #55555f; --text-3: #8c8c96; --border: #e6e3dc; --border-2: #efece6;
+    --accent: #5a5fe0; --accent-2: #4a4fca; --accent-soft: rgba(90,95,224,0.09);
+    --accent-line: rgba(90,95,224,0.22); --get: #2f9e6b; --post: #3b6fd4; --put: #c0872a;
+    --del: #d0503f; --warn-bg: rgba(192,135,42,0.10); --warn-line: rgba(192,135,42,0.35);
+    --code-bg: #f6f5f1; --code-border: #e8e5de;
+    --shadow: 0 1px 2px rgba(20,20,30,0.04), 0 6px 24px rgba(20,20,30,0.05);
+  }
+  :root[data-theme="dark"] {
+    --bg: #151517; --surface: #1d1d21; --surface-2: #232329; --text: #ececf0;
+    --text-2: #a2a2ad; --text-3: #6a6a76; --border: #2c2c33; --border-2: #26262c;
+    --accent: #8b8ef5; --accent-2: #a3a5f8; --accent-soft: rgba(139,142,245,0.12);
+    --accent-line: rgba(139,142,245,0.28); --get: #4ec38c; --post: #6f9df0; --put: #e0aa54;
+    --del: #ec6d5c; --warn-bg: rgba(224,170,84,0.10); --warn-line: rgba(224,170,84,0.32);
+    --code-bg: #191920; --code-border: #2b2b33;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 30px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 264px minmax(0, 1fr);
+    gap: 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ---- Sidebar nav ---- */
+  .toc {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 34px 22px 40px 28px;
+    border-right: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--bg), var(--bg));
+  }
+  .toc-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 4px;
+  }
+  .toc-mark {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: var(--accent); color: #fff;
+    display: grid; place-items: center;
+    font-size: 15px; font-weight: 700;
+    box-shadow: 0 2px 8px var(--accent-soft);
+  }
+  .toc-brand b { font-size: 15px; letter-spacing: -0.2px; }
+  .toc-tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.5px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    margin: 2px 0 24px 1px;
+  }
+  .toc nav { display: flex; flex-direction: column; gap: 1px; }
+  .toc a {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    padding: 5px 9px;
+    border-radius: 7px;
+    color: var(--text-2);
+    text-decoration: none;
+    font-size: 13.5px;
+    line-height: 1.35;
+    transition: background 0.12s, color 0.12s;
+  }
+  .toc a:hover { background: var(--surface-2); color: var(--text); }
+  .toc a.active { background: var(--accent-soft); color: var(--accent-2); font-weight: 600; }
+  .toc a .n {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    flex: none;
+    width: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  .toc a.active .n { color: var(--accent); }
+
+  /* ---- Content ---- */
+  main {
+    padding: 0 clamp(24px, 5vw, 72px) 120px;
+    min-width: 0;
+  }
+
+  header.hero {
+    padding: 72px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 56px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(34px, 5.2vw, 52px);
+    line-height: 1.04;
+    letter-spacing: -1.4px;
+    margin: 0 0 20px;
+    text-wrap: balance;
+    font-weight: 780;
+  }
+  .lede {
+    font-size: 19px;
+    line-height: 1.6;
+    color: var(--text-2);
+    max-width: var(--maxw);
+    margin: 0;
+  }
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 30px;
+  }
+  .chip {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+  }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  section { margin-bottom: 72px; scroll-margin-top: 24px; }
+  .sec-head { margin-bottom: 26px; }
+  .sec-num {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    letter-spacing: 1px;
+    color: var(--accent-2);
+    display: block;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-size: clamp(25px, 3.4vw, 33px);
+    letter-spacing: -0.7px;
+    line-height: 1.12;
+    margin: 0;
+    font-weight: 720;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 18.5px;
+    letter-spacing: -0.2px;
+    margin: 40px 0 10px;
+    font-weight: 660;
+  }
+  h4 {
+    font-size: 14px;
+    margin: 26px 0 8px;
+    font-weight: 680;
+    color: var(--text);
+  }
+  p { max-width: var(--maxw); margin: 0 0 16px; }
+  main a { color: var(--accent-2); text-decoration: none; border-bottom: 1px solid var(--accent-line); }
+  main a:hover { border-bottom-color: var(--accent-2); }
+  strong { font-weight: 640; color: var(--text); }
+  ul, ol { max-width: var(--maxw); padding-left: 22px; margin: 0 0 16px; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--text-3); }
+
+  /* code + refs */
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 5px;
+    padding: 1px 5px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .ref {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent-2);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+    border-radius: 5px;
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+  pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin: 0 0 20px;
+    max-width: 100%;
+  }
+  pre code { background: none; border: none; padding: 0; white-space: pre; font-size: 13px; }
+  .tok-c { color: var(--text-3); font-style: italic; }
+  .tok-k { color: var(--accent-2); }
+  .tok-s { color: var(--get); }
+  .tok-f { color: var(--put); }
+
+  /* method chips */
+  .m { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
+  .m-get { color: var(--get); }
+  .m-post { color: var(--post); }
+  .m-put { color: var(--put); }
+  .m-del { color: var(--del); }
+
+  /* callouts */
+  .call {
+    max-width: var(--maxw);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin: 0 0 22px;
+    box-shadow: var(--shadow);
+  }
+  .call.model { border-left-color: var(--accent); }
+  .call.trace { border-left-color: var(--get); }
+  .call.gotcha { border-left-color: var(--put); background: var(--warn-bg); border-color: var(--warn-line); }
+  .call .k {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin: 0 0 8px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .call.trace .k { color: var(--get); }
+  .call.gotcha .k { color: var(--put); }
+  .call.model .k { color: var(--accent-2); }
+  .call p:last-child, .call ul:last-child { margin-bottom: 0; }
+  .call p { max-width: none; }
+
+  /* mermaid */
+  .diagram {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 22px 18px;
+    margin: 0 0 24px;
+    overflow-x: auto;
+  }
+  .diagram pre.mermaid {
+    background: none; border: none; padding: 0; margin: 0;
+    text-align: center; min-width: 480px;
+  }
+  .cap {
+    font-size: 13px;
+    color: var(--text-3);
+    font-style: italic;
+    margin: -12px 0 26px;
+    max-width: var(--maxw);
+  }
+
+  /* data tables */
+  .tbl-wrap { overflow-x: auto; margin: 0 0 22px; border: 1px solid var(--border); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 520px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border-2); vertical-align: top; }
+  th {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--text-3); font-weight: 600; background: var(--surface-2);
+    position: sticky; top: 0;
+  }
+  tr:last-child td { border-bottom: none; }
+  td code { font-size: 12px; white-space: nowrap; }
+  td.ch { color: var(--text-2); }
+
+  /* store legend */
+  .stores { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 0 0 24px; max-width: var(--maxw); }
+  .store {
+    border: 1px solid var(--border); border-radius: 11px; padding: 16px 17px; background: var(--surface); box-shadow: var(--shadow);
+  }
+  .store h4 { margin: 0 0 4px; font-family: var(--mono); font-size: 13.5px; color: var(--accent-2); }
+  .store .f { font-size: 12px; color: var(--text-3); font-family: var(--mono); margin-bottom: 9px; }
+  .store p { font-size: 13.5px; margin: 0; color: var(--text-2); max-width: none; }
+
+  /* step list */
+  .steps { counter-reset: step; list-style: none; padding: 0; max-width: var(--maxw); }
+  .steps > li {
+    position: relative; padding-left: 46px; margin-bottom: 20px; min-height: 30px;
+  }
+  .steps > li::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: 0; top: 0;
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--accent-soft); color: var(--accent-2);
+    border: 1px solid var(--accent-line);
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+  }
+  .steps > li b { display: block; margin-bottom: 2px; }
+
+  .kicker { font-family: var(--mono); font-size: 11.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-3); margin: 34px 0 12px; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 34px 0 0;
+    color: var(--text-3);
+    font-size: 13.5px;
+    max-width: var(--maxw);
+  }
+  footer code { font-size: 12px; }
+
+  .theme-toggle {
+    position: fixed; top: 16px; right: 18px; z-index: 20;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.5px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text-2);
+    padding: 6px 11px; border-radius: 999px; cursor: pointer; box-shadow: var(--shadow);
+  }
+  .theme-toggle:hover { color: var(--text); border-color: var(--accent-line); }
+
+  @media (max-width: 920px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 24px; }
+    .toc nav { display: grid; grid-template-columns: 1fr 1fr; }
+    main { padding: 0 22px 90px; }
+    header.hero { padding: 44px 0 32px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { scroll-behavior: auto !important; transition: none !important; }
+  }
+  html { scroll-behavior: smooth; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+</style>
+
+<button class="theme-toggle" id="themeBtn" aria-label="Toggle theme">◐ THEME</button>
+
+<div class="layout">
+  <aside class="toc">
+    <div class="toc-brand">
+      <span class="toc-mark">R</span>
+      <b>Rewind</b>
+    </div>
+    <div class="toc-tag">Code-flow field guide</div>
+    <nav id="tocNav">
+      <a href="#overview"><span class="n">00</span> The mental model</a>
+      <a href="#architecture"><span class="n">01</span> Two-process architecture</a>
+      <a href="#ipc"><span class="n">02</span> The IPC boundary</a>
+      <a href="#data"><span class="n">03</span> The data model</a>
+      <a href="#stores"><span class="n">04</span> The state layer</a>
+      <a href="#drafts"><span class="n">05</span> Drafts vs. saved</a>
+      <a href="#send"><span class="n">06</span> Sending a request</a>
+      <a href="#vars"><span class="n">07</span> Variable interpolation</a>
+      <a href="#persist"><span class="n">08</span> Persistence on disk</a>
+      <a href="#ui"><span class="n">09</span> The UI, top to bottom</a>
+      <a href="#subsystems"><span class="n">10</span> Supporting subsystems</a>
+      <a href="#tour"><span class="n">11</span> A guided reading tour</a>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">Learning Report · Architecture &amp; Code Flow</p>
+      <h1>How Rewind works, from keystroke to disk</h1>
+      <p class="lede">Rewind is a local-first API client — a Postman built as an Electron app where nothing leaves the machine. This report traces the real code paths end to end so you can open any file and know exactly where you are.</p>
+      <div class="hero-meta">
+        <span class="chip"><b>Electron</b> · main / preload / renderer</span>
+        <span class="chip"><b>React 18</b> + <b>Zustand</b></span>
+        <span class="chip"><b>TypeScript</b>, electron-vite</span>
+        <span class="chip">~60 source files</span>
+      </div>
+    </header>
+
+    <!-- 00 -->
+    <section id="overview">
+      <div class="sec-head">
+        <span class="sec-num">00 — START HERE</span>
+        <h2>The mental model</h2>
+      </div>
+      <p>Before any file, hold these five ideas in your head. Almost every design decision in the codebase falls out of one of them.</p>
+      <div class="call model">
+        <p class="k">◆ The five load-bearing ideas</p>
+        <ul>
+          <li><strong>Two worlds, one bridge.</strong> The UI (renderer) is a sandboxed web page that cannot touch the disk or network. All privileged work happens in the Electron <em>main</em> process, reached only through a typed <code>window.relay.*</code> bridge.</li>
+          <li><strong>Edits live in memory as “drafts.”</strong> Typing in the editor never writes to disk. It updates a <code>drafts[requestId]</code> override. Disk is touched only on explicit Save or on structural changes.</li>
+          <li><strong>Two-phase variable resolution.</strong> The UI previews <code>{{vars}}</code> with dynamic values left <em>literal</em>; the main process does the real substitution at send time — so what you see is what gets sent.</li>
+          <li><strong>Local-first, crash-safe storage.</strong> Everything is JSON/JSONL under Electron’s <code>userData</code>, written atomically (temp → fsync → rename) with corrupt-file quarantine.</li>
+          <li><strong>The app used to be called “Relay.”</strong> You’ll see <code>window.relay</code>, <code>.relay</code> bundles, and <code>relay:*</code> keys everywhere — kept deliberately for data compatibility. Mentally read “relay” as “the bridge.”</li>
+        </ul>
+      </div>
+      <p>The rest of this report is a guided descent: start at the process boundary, work down through the data model and state, then follow a single <span class="m m-post">POST</span> from the moment you press <strong>Send</strong> all the way to a line appended in a run log — and back up to the response you see.</p>
+    </section>
+
+    <!-- 01 -->
+    <section id="architecture">
+      <div class="sec-head">
+        <span class="sec-num">01 — THE SHAPE OF THE APP</span>
+        <h2>Two-process architecture</h2>
+      </div>
+      <p>electron-vite compiles three separate targets. Keeping them straight is the single most useful thing you can do when reading the code, because a function’s <em>capabilities</em> are decided entirely by which target it lives in.</p>
+
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart LR
+    subgraph R["RENDERER · sandboxed web page"]
+      direction TB
+      UI["React components"] --> ST["Zustand stores<br/>useApp · useRuns · useUi"]
+    end
+    subgraph P["PRELOAD · contextBridge"]
+      BR["window.relay<br/>(typed API)"]
+    end
+    subgraph M["MAIN · full Node.js"]
+      direction TB
+      IPC["ipcMain handlers"] --> SVC["services:<br/>httpClient · scriptRunner<br/>workspaceStore · runLog"]
+      SVC --> DISK[("JSON / JSONL<br/>on disk")]
+    end
+    ST -->|"call"| BR
+    BR -->|"ipcRenderer.invoke"| IPC
+    IPC -.->|"broadcast runsAppended"| ST
+</pre>
+      </div>
+      <p class="cap">Data flows down through the bridge on every action; the one channel that flows back up unprompted is the <code>runsAppended</code> push that keeps history live.</p>
+
+      <h3>Who can do what</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Target</th><th>Lives in</th><th>Can it…</th><th>Job</th></tr></thead>
+          <tbody>
+            <tr><td><code>renderer</code></td><td><code>src/renderer</code></td><td class="ch">No disk, no network, no Node</td><td class="ch">The entire UI + client state</td></tr>
+            <tr><td><code>preload</code></td><td><code>src/preload</code></td><td class="ch">Only <code>ipcRenderer.invoke</code></td><td class="ch">Expose a typed, minimal bridge</td></tr>
+            <tr><td><code>main</code></td><td><code>src/main</code></td><td class="ch">Full Node: fs, fetch, vm, dialogs</td><td class="ch">All privileged work</td></tr>
+            <tr><td><code>shared</code></td><td><code>src/shared</code></td><td class="ch">Pure logic, imported by all</td><td class="ch">Types, interpolation, codegen</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The security posture is textbook-hardened Electron, set in <span class="ref">window.ts:35</span>: <code>contextIsolation: true</code>, <code>nodeIntegration: false</code>, <code>sandbox: true</code>, <code>webSecurity: true</code>. Navigation is frozen — <code>will-navigate</code> is always prevented and new windows open in the OS browser instead. The renderer is welded to its own document; the <code>relay</code> preload API is its <em>entire</em> outside world.</p>
+
+      <div class="call trace">
+        <p class="k">▸ Trace it yourself</p>
+        <p>Startup order lives in <span class="ref">src/main/index.ts</span>. Note the hard sequence in <code>whenReady</code>: <code>initProfiles()</code> must run <em>before</em> anything reads a file, because it sets the active-profile directory that every path helper depends on. Miss that and <span class="ref">paths.ts</span> throws <code>"profile dir not initialized"</code>.</p>
+      </div>
+    </section>
+
+    <!-- 02 -->
+    <section id="ipc">
+      <div class="sec-head">
+        <span class="sec-num">02 — THE ONLY DOOR</span>
+        <h2>The IPC boundary</h2>
+      </div>
+      <p>Because the renderer can’t act on its own, <em>every</em> capability is a named IPC channel. The channel names are a single frozen source of truth in <span class="ref">src/shared/ipc.ts</span>, imported by both sides so a typo can’t silently drift the two apart.</p>
+
+      <p>The preload layer (<span class="ref">src/preload/index.ts</span>) wraps each channel in a one-line typed method and exposes them as <code>window.relay</code> via <code>contextBridge.exposeInMainWorld</code>. The renderer’s <code>index.d.ts</code> augments the global <code>Window</code> so you get full type-safety with zero runtime coupling:</p>
+      <pre><code><span class="tok-c">// preload — every method is this thin</span>
+send: (payload) => ipcRenderer.<span class="tok-f">invoke</span>(IPC.httpSend, payload),
+<span class="tok-c">// two subscriptions return an unsubscribe fn (removeListener, not removeAll)</span>
+onRunAppended: (cb) => { <span class="tok-c">/* subscribe to push channel */</span> },</code></pre>
+
+      <h3>The channel catalogue</h3>
+      <p>All channels are request/response (<code>ipcMain.handle</code>) except two pushes from main. Registration is in <span class="ref">src/main/ipc/register.ts</span>.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Channel</th><th>Does</th></tr></thead>
+          <tbody>
+            <tr><td><code>workspace:get</code></td><td class="ch">Boot — returns the whole workspace, settings, environments, collections</td></tr>
+            <tr><td><code>http:send</code></td><td class="ch"><strong>The big one</strong> — resolve vars/auth/body, run HTTP, run script, persist a run</td></tr>
+            <tr><td><code>http:cancel</code></td><td class="ch">Abort an in-flight request by its <code>sendId</code></td></tr>
+            <tr><td><code>collection:save / :delete / :export</code></td><td class="ch">One JSON file per collection</td></tr>
+            <tr><td><code>env:save / :setActive</code></td><td class="ch">Environments and the active-env pointer</td></tr>
+            <tr><td><code>runs:list / :get / :saveExample</code></td><td class="ch">Read run history; freeze a response onto a request</td></tr>
+            <tr><td><code>transfer:export / :import</code></td><td class="ch"><code>.relay</code> workspace bundles</td></tr>
+            <tr><td><code>openapi:import · postman:import</code></td><td class="ch">Import pipelines</td></tr>
+            <tr><td><code>profiles:*</code></td><td class="ch">List / create / switch / rename / delete workspaces</td></tr>
+            <tr><td><code>runs:appended</code> <em>(push)</em></td><td class="ch">Broadcast a new run summary to every window — live history</td></tr>
+            <tr><td><code>tabs:closeActive</code> <em>(push)</em></td><td class="ch">The ⌘W menu item tells the renderer to close its active tab</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Notice the guards: <code>shell:openExternal</code> and the window’s new-window handler both refuse anything that isn’t <code>http(s)</code>, closing off <code>file:</code>/<code>javascript:</code> abuse.</p>
+    </section>
+
+    <!-- 03 -->
+    <section id="data">
+      <div class="sec-head">
+        <span class="sec-num">03 — THE VOCABULARY</span>
+        <h2>The data model</h2>
+      </div>
+      <p>Everything in <span class="ref">src/shared/types.ts</span> is a pure type (plus two runtime exports). Learn this hierarchy and the rest of the app reads like prose.</p>
+
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+    WS["Workspace<br/><small>id · name · activeEnvironmentId</small>"] --> COL["Collection<br/><small>name · version · variables?</small>"]
+    COL --> ITEMS["items: TreeNode[]"]
+    ITEMS --> FOLDER["FolderNode<br/><small>children: TreeNode[]</small>"]
+    ITEMS --> REQ["RequestNode"]
+    FOLDER --> REQ
+    REQ --> HDR["headers · params : KV[]"]
+    REQ --> BODY["body : RequestBody"]
+    REQ --> AUTH["auth : RequestAuth"]
+    REQ --> SCR["scripts.postResponse"]
+    REQ --> EX["examples : SavedExample[]"]
+</pre>
+      </div>
+      <p class="cap"><code>TreeNode = FolderNode | RequestNode</code> — a discriminated union on <code>type</code>. Folders nest recursively; every tree helper in <span class="ref">lib/tree.ts</span> walks this shape.</p>
+
+      <h3>The pieces worth memorising</h3>
+      <ul>
+        <li><strong><code>KV</code></strong> — the universal row: <code>{ id, key, value, enabled }</code>. Headers, query params, and every kind of variable are all <code>KV[]</code>. The stable <code>id</code> is what stops React lists from remounting while you type.</li>
+        <li><strong><code>RequestNode</code></strong> — a single request: method, url, <code>headers</code>, <code>params</code>, <code>body</code>, <code>auth</code>, <code>scripts</code>, saved <code>examples</code>. Its <code>params</code> are kept in two-way sync with the URL’s query string.</li>
+        <li><strong><code>RequestAuth.mode</code></strong> — <code>inherit</code> means “use the environment’s <code>token</code> variable as a Bearer.” That one convention connects auth to the variable system.</li>
+      </ul>
+
+      <h3>Two models of a request: unresolved vs. resolved</h3>
+      <p>This distinction trips people up, so pin it now. A <code>RequestNode</code> still contains <code>{{variables}}</code>. A <strong><code>RunRequest</code></strong> is the fully-resolved thing actually sent — headers flattened to <code>[key, value]</code> tuples, all variables substituted. The main process turns the former into the latter. The historical record of an execution is a <strong><code>Run</code></strong> (full request + response + script result); list views use the lighter <strong><code>RunSummary</code></strong>, projected by <code>toSummary(run)</code>.</p>
+    </section>
+
+    <!-- 04 -->
+    <section id="stores">
+      <div class="sec-head">
+        <span class="sec-num">04 — CLIENT STATE</span>
+        <h2>The state layer: three stores</h2>
+      </div>
+      <p>No Redux, no React context. Three Zustand stores hold all client state; components subscribe to slices with selector hooks, and every user action calls a store action.</p>
+      <div class="stores">
+        <div class="store">
+          <h4>useApp</h4>
+          <div class="f">stores/app.ts</div>
+          <p>The workspace: collections tree, environments, settings, current <code>selection</code>, open tabs, and per-request <code>drafts</code>. Owns all persistence.</p>
+        </div>
+        <div class="store">
+          <h4>useRuns</h4>
+          <div class="f">stores/runs.ts</div>
+          <p>Execution + history: <code>send()</code>, the per-request run panel with diff-compare, and the global History page.</p>
+        </div>
+        <div class="store">
+          <h4>useUi</h4>
+          <div class="f">stores/ui.ts</div>
+          <p>Pure view state: current view, active editor tab, every modal flag, the find bar, context menu, toasts, inline-rename target. Never touches disk.</p>
+        </div>
+      </div>
+
+      <h3>Persistence tiers</h3>
+      <p>A subtle but important detail: different state saves on different schedules, all from <code>useApp</code>.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>What</th><th>When it saves</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td class="ch">Structural collection edits</td><td><code>400ms</code> debounce</td><td class="ch"><code>collection:save</code></td></tr>
+            <tr><td class="ch">Explicit request Save (⌘S)</td><td>Immediate</td><td class="ch"><code>collection:save</code></td></tr>
+            <tr><td class="ch">Settings</td><td>Immediate</td><td class="ch"><code>settings.json</code></td></tr>
+            <tr><td class="ch">Environments</td><td><code>300ms</code> debounce</td><td class="ch"><code>env:save</code></td></tr>
+            <tr><td class="ch">Open tabs</td><td>Every change</td><td class="ch"><code>localStorage</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Open tabs are restored on boot from <code>localStorage['relay:tabs:&lt;workspaceId&gt;']</code>, filtered down to request ids that still exist. Sending a request never persists it.</p>
+    </section>
+
+    <!-- 05 -->
+    <section id="drafts">
+      <div class="sec-head">
+        <span class="sec-num">05 — THE CENTRAL MECHANISM</span>
+        <h2>Drafts vs. saved requests</h2>
+      </div>
+      <p>If you understand only one internal mechanism, make it this one — it explains dirty-dots, unsaved edits surviving tab switches, and why you can send a request you haven’t saved.</p>
+      <p>There are two representations of any request: the <strong>saved</strong> node inside <code>collections[].items</code>, and an optional <strong>draft</strong> override in <code>drafts[requestId]</code> that exists only while there are unsaved edits. Every read goes through <code>effectiveRequest()</code> — “draft if present, else saved.”</p>
+
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart TD
+    E["User edits a field"] --> U["updateRequest(patch)"]
+    U --> B["base = drafts[id] ?? saved"]
+    B --> N["next = { ...base, ...patch }"]
+    N --> URL{"url changed &<br/>no explicit params?"}
+    URL -->|yes| SYNC["re-derive params<br/>from URL"]
+    URL -->|no| EQ
+    SYNC --> EQ{"next deep-equals<br/>saved node?"}
+    EQ -->|yes| DEL["delete draft<br/><small>→ no longer dirty</small>"]
+    EQ -->|no| SET["drafts[id] = next<br/><small>→ dirty-dot shows</small>"]
+</pre>
+      </div>
+      <p class="cap">The deep-equality check is what makes editing a value back to its original silently clear the dirty state — a small touch that feels right in the UI.</p>
+
+      <ul>
+        <li><strong><code>saveDraft()</code></strong> writes the draft into the collection tree via <code>mapRequest</code>, deletes the draft, and saves immediately.</li>
+        <li><strong><code>discardDraft()</code></strong> just deletes the draft; the saved node reappears.</li>
+        <li>Drafts are keyed by request id, <em>independent of tabs</em> — so every open tab keeps its own unsaved edits and its own dirty-dot simultaneously.</li>
+        <li>Drafts are pruned in exactly one place: when a node or collection is deleted (<code>pruneDrafts</code> + <code>pruneTabs</code>).</li>
+      </ul>
+    </section>
+
+    <!-- 06 -->
+    <section id="send">
+      <div class="sec-head">
+        <span class="sec-num">06 — THE CROWN JEWEL</span>
+        <h2>Sending a request, end to end</h2>
+      </div>
+      <p>This is the flow that ties everything together. Follow one press of <strong>Send</strong> across the process boundary and back.</p>
+
+      <div class="diagram">
+        <pre class="mermaid">
+sequenceDiagram
+    participant U as UI (Send btn / ⌘↵)
+    participant RS as useRuns.send
+    participant BR as window.relay
+    participant H as http:send handler
+    participant HC as sendHttp (fetch)
+    participant SC as runScript (vm)
+    participant D as disk + broadcast
+    U->>RS: send()
+    RS->>RS: effectiveRequest() → draft, unsaved OK
+    RS->>BR: send({ sendId, collectionId, request })
+    BR->>H: ipcRenderer.invoke(http:send)
+    H->>H: merge vars, resolve auth + body → RunRequest
+    H->>HC: sendHttp(sendId, resolved, limit)
+    HC-->>H: { response, durationMs } or { error }
+    H->>SC: runScript(postResponse, response)
+    SC-->>H: { assertions, varsSet, logs }
+    H->>D: write varsSet→env · appendRun · broadcast
+    H-->>RS: full Run
+    RS->>RS: re-pull env, prepend summary, set currentRun
+    RS-->>U: ResponsePane renders
+</pre>
+      </div>
+
+      <h3>Step by step</h3>
+      <ol class="steps">
+        <li><b>The renderer resolves which request to send.</b> <code>useRuns.send()</code> reads the selection and calls <code>effectiveRequest()</code> — it sends the <em>draft</em>, so unsaved edits go out (Postman behavior). It mints a <code>sendId</code> for cancellation and flips <code>sending: true</code>.</li>
+        <li><b>Across the bridge with the raw node.</b> The <code>SendPayload</code> carries the <em>unresolved</em> <code>RequestNode</code> — <code>{{vars}}</code> still intact. All resolution happens in main, on purpose.</li>
+        <li><b>Main builds the variable map.</b> In <span class="ref">register.ts</span> the handler loads workspace/env/settings/collections in parallel, picks the active environment, and merges: <code>{ ...collectionVars, ...envVars }</code> — <strong>environment variables win</strong> on a name clash.</li>
+        <li><b>Resolve URL, headers, auth, body.</b> Each is interpolated; disabled/blank rows are skipped. <code>auth: 'inherit'</code> + a <code>token</code> var becomes <code>Authorization: Bearer …</code>. The result is a fully-resolved <code>RunRequest</code> with no variables left.</li>
+        <li><b>Actually make the request.</b> <code>sendHttp()</code> in <span class="ref">httpClient.ts</span> uses Node’s global <code>fetch</code>, registers an <code>AbortController</code> in an <code>inflight</code> Map keyed by <code>sendId</code>, arms a 30s timeout, follows redirects, buffers the body as text, and truncates past the size limit (default 1 MiB) while still recording the true byte size.</li>
+        <li><b>Run the post-response script.</b> If present, <code>runScript()</code> executes the user’s JS in a Node <code>vm</code> sandbox (1s timeout) exposing <code>res</code>, <code>vars.set/get</code>, <code>assert</code>, <code>console.log</code>. Any <code>vars.set(...)</code> is captured in <code>varsSet</code>.</li>
+        <li><b>Persist and notify.</b> <code>varsSet</code> is written back into the active environment (this is how <code>vars.set("chargeId", res.json.id)</code> chains requests). The full <code>Run</code> is appended to today’s JSONL, and a <code>RunSummary</code> is broadcast to every window.</li>
+        <li><b>The renderer catches up.</b> <code>send()</code> re-pulls environments (a script may have changed them), sets <code>currentRun</code>, and prepends the summary into the run panel. <code>ResponsePane</code> re-renders with status, timing, size, assertions, and the pretty-printed body.</li>
+      </ol>
+
+      <div class="call gotcha">
+        <p class="k">▲ Gotchas worth knowing</p>
+        <ul>
+          <li>The 30s timeout is <strong>hardcoded</strong>, not a setting.</li>
+          <li>The full response is downloaded into memory (<code>res.text()</code>) <em>before</em> truncation — a giant response is fully fetched even though only 1 MiB is stored.</li>
+          <li>Redirects are opaque (<code>redirect: 'follow'</code>): you see only the final response, no chain.</li>
+          <li>The <code>vm</code> sandbox is <strong>crash/hang containment, not a security boundary</strong> — scripts are your own, Postman-tier trust. The code itself documents the upgrade path (an Electron <code>utilityProcess</code>) if that ever changes.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 07 -->
+    <section id="vars">
+      <div class="sec-head">
+        <span class="sec-num">07 — WHY PREVIEWS MATCH SENDS</span>
+        <h2>Variable interpolation, two phases</h2>
+      </div>
+      <p>One engine in <span class="ref">src/shared/interpolate.ts</span> serves both the UI and the sender. It matches canonical <code>{{name}}</code> (and legacy <code>${name}</code>), where names may start with <code>$</code> for dynamic built-ins.</p>
+      <p>The clever bit is the <code>dynamic</code> flag:</p>
+      <ul>
+        <li><strong>Renderer preview</strong> calls it with <code>dynamic: false</code> — so <code>{{$uuid}}</code> and <code>{{$timestamp}}</code> are left <em>literal</em> in what you see.</li>
+        <li><strong>Main, at send time</strong> uses <code>dynamic: true</code> — <code>$uuid</code> becomes a fresh <code>crypto.randomUUID()</code>, <code>$timestamp</code> becomes unix seconds.</li>
+      </ul>
+      <p>The payoff: a dynamic value you preview never disagrees with the one actually sent, because the preview deliberately doesn’t evaluate it. Unresolved names are returned in an <code>unresolved</code> list, which drives the “missing variable” coloring in the URL bar and the var-peek popover.</p>
+      <p>Resolution precedence is assembled by <code>mergedVars()</code> in <span class="ref">stores/app.ts</span> — collection variables first, active-environment variables spread last so they override. The same merged map feeds URL highlighting, <code>{{</code> autocomplete, hover peek, and code generation.</p>
+    </section>
+
+    <!-- 08 -->
+    <section id="persist">
+      <div class="sec-head">
+        <span class="sec-num">08 — WHERE BYTES LAND</span>
+        <h2>Persistence on disk</h2>
+      </div>
+      <p>Root is Electron’s <code>userData</code> (<code>~/Library/Application Support/Rewind</code> on macOS). Settings and window geometry are global; everything else is per-<em>profile</em>.</p>
+      <pre><code>userData/
+├─ settings.json            <span class="tok-c">← global</span>
+├─ window-state.json        <span class="tok-c">← global</span>
+├─ profiles.json            <span class="tok-c">← registry { activeId, profiles[] }</span>
+└─ profiles/
+   └─ &lt;profileId&gt;/          <span class="tok-c">← the "active profile dir"</span>
+      ├─ workspace.json
+      ├─ environments.json
+      ├─ collections/
+      │   └─ &lt;collectionId&gt;.json    <span class="tok-c">← one file per collection</span>
+      └─ runs/
+          └─ YYYY-MM-DD.jsonl        <span class="tok-c">← append-only, one run per line</span></code></pre>
+
+      <h3>Three storage habits worth copying</h3>
+      <ul>
+        <li><strong>Atomic writes</strong> (<span class="ref">jsonStore.ts</span>): write to a <code>.tmp</code>, <code>fsync</code>, then <code>rename</code> (atomic on APFS). Per-path write queues serialize concurrent writes to the same file so they never interleave.</li>
+        <li><strong>Corrupt-file quarantine:</strong> a JSON file that fails to parse is renamed to <code>.corrupt-&lt;ts&gt;</code> and treated as absent — never deleted, never fatal. The JSONL parser likewise skips a torn trailing line from a mid-write crash.</li>
+        <li><strong>Append-only run log with an mtime cache</strong> (<span class="ref">runLog.ts</span>): history lists are cheap because per-day files are only re-parsed when their <code>mtime</code> changes; full <code>Run</code> bodies are read on demand.</li>
+      </ul>
+      <p>Profiles are almost free: a single mutable <code>activeDir</code> is repointed on switch, so all path helpers follow. <code>initProfiles()</code> also migrates any legacy root-level data into the first profile on first run.</p>
+    </section>
+
+    <!-- 09 -->
+    <section id="ui">
+      <div class="sec-head">
+        <span class="sec-num">09 — THE VISIBLE PART</span>
+        <h2>The UI, top to bottom</h2>
+      </div>
+      <p><code>App.tsx</code> gates on boot, then renders the <code>Titlebar</code> and either the <code>RunbookView</code> or the <code>HistoryPage</code>, plus a stack of modals driven by <code>useUi</code> flags. The runbook is a three-column grid:</p>
+      <pre><code>RunbookView
+├─ Sidebar          <span class="tok-c">collections tree, search, selection</span>
+├─ center-pane
+│   ├─ TabsBar      <span class="tok-c">open requests (Postman-style)</span>
+│   ├─ UrlBar       <span class="tok-c">method · url · Send</span>
+│   ├─ RequestTabs  <span class="tok-c">Params · Body · Headers · Auth · Scripts</span>
+│   └─ ResponsePane <span class="tok-c">status · body · find · copy-as</span>
+└─ HistoryPanel     <span class="tok-c">this request's recent runs + diff</span></code></pre>
+
+      <h3>How a click becomes state</h3>
+      <p>The pattern is uniform: an interaction calls a store action, the store mutates, subscribed components re-render. Selecting a request in the <code>Sidebar</code> calls <code>selectRequest()</code>, which adds a tab and sets selection; a <code>useEffect</code> in <code>RunbookView</code> then fires <code>loadForRequest()</code> to fetch that request’s run history. Every editor field routes through <code>updateRequest()</code> — so all editing is draft-based and reversible until Save.</p>
+
+      <h4>Two details you’ll re-encounter</h4>
+      <ul>
+        <li><strong>Tabs</strong> are just <code>openTabs: Selection[]</code> plus one <code>selection</code>; the invariant is that selection is always one of the tabs or <code>null</code>. Middle-click or ✕ closes; close moves selection to the nearest neighbor.</li>
+        <li><strong>Splitters</strong> (sidebar width, editor/response height) share one deliberate trick: during drag they write the size straight to the DOM per animation frame and only commit to settings on pointer-up — so a drag never re-renders the whole pane.</li>
+      </ul>
+    </section>
+
+    <!-- 10 -->
+    <section id="subsystems">
+      <div class="sec-head">
+        <span class="sec-num">10 — THE REST OF THE MAP</span>
+        <h2>Supporting subsystems</h2>
+      </div>
+      <p>Grab-bag of the remaining machinery — you now have enough context for each to make sense at a glance.</p>
+      <ul>
+        <li><strong>Import pipelines.</strong> <span class="ref">openapiImport.ts</span> walks <code>paths × methods</code>, groups by tag into folders, and synthesizes body examples from JSON Schema. <span class="ref">postmanImport.ts</span> sniffs and converts every Postman shape (v1, v2.0, v2.1, environments, full data-dump), remaps variable syntax, and imports <code>pm.*</code> test scripts <em>commented out</em> since they can’t run in Rewind’s sandbox.</li>
+        <li><strong>Code generation</strong> (<span class="ref">shared/codegen.ts</span>). <code>buildCurl</code>, <code>buildNode</code>, <code>buildPython</code> all consume an already-resolved <code>RunRequest</code> — so “Copy as cURL” is just <code>resolveForCodegen()</code> + one builder.</li>
+        <li><strong>cURL paste</strong> (<span class="ref">shared/curlParse.ts</span>). A real quote/escape-aware tokenizer turns a pasted <code>curl</code> command back into a <code>RequestNode</code>, which is why pasting a URL re-syncs the params table.</li>
+        <li><strong>Response diffing</strong> (<span class="ref">lib/jsonDiff.ts</span>). Normalizes both bodies (without reordering keys — order changes are real), line-diffs them, and merges adjacent changes down to a token boundary so <code>2000 → 2500</code> never renders as <code>20 → 500</code>.</li>
+        <li><strong>Syntax highlighting</strong> (<span class="ref">lib/tokenize.ts</span>). A single-pass tokenizer for JSON and JS powers the editor, the response viewer, and the diff — with plain-<code>&lt;pre&gt;</code> fallbacks past size thresholds for performance.</li>
+        <li><strong>The seed</strong> (<span class="ref">seed.ts</span>). First run writes a demo “Payments API” workspace with realistic historical runs — including a <code>Create charge</code> request whose script does <code>vars.set("chargeId", res.json.id)</code>, the canonical request-chaining example.</li>
+      </ul>
+    </section>
+
+    <!-- 11 -->
+    <section id="tour">
+      <div class="sec-head">
+        <span class="sec-num">11 — DO THIS NEXT</span>
+        <h2>A guided reading tour</h2>
+      </div>
+      <p>Now open the code in this order — each step builds on the last, and you’ve already got the mental model for all of them.</p>
+      <ol class="steps">
+        <li><b>The contract.</b> Read <span class="ref">src/shared/types.ts</span> top to bottom, then <span class="ref">src/shared/ipc.ts</span>. This is the whole vocabulary in ~250 lines.</li>
+        <li><b>The bridge.</b> Skim <span class="ref">src/preload/index.ts</span> — see how thin it is. Every method maps 1:1 to a channel.</li>
+        <li><b>The state.</b> Read <span class="ref">stores/app.ts</span>, focusing on <code>updateRequest</code>, <code>effectiveRequest</code>, <code>saveDraft</code>, and <code>mergedVars</code>. This is section 05 in code.</li>
+        <li><b>The send path.</b> Follow <code>send()</code> in <span class="ref">stores/runs.ts</span> → the <code>http:send</code> handler in <span class="ref">ipc/register.ts</span> → <code>sendHttp</code> in <span class="ref">httpClient.ts</span> → <code>runScript</code> in <span class="ref">scriptRunner.ts</span>. This is section 06 in code.</li>
+        <li><b>The storage.</b> Read <span class="ref">jsonStore.ts</span> and <span class="ref">runLog.ts</span> to see the crash-safe patterns.</li>
+        <li><b>Pick one feature and trace it fully.</b> Good candidates: a header edit (UI → <code>updateRequest</code> → draft → debounced save), or “Save example” (<code>ResponsePane</code> → <code>runs:saveExample</code> → collection rewrite).</li>
+      </ol>
+
+      <div class="call model">
+        <p class="k">◆ The one-sentence summary</p>
+        <p>A sandboxed React UI holds all editing in memory as drafts, resolves variables only for preview, and hands raw requests across a single typed bridge to a Node process that does the real HTTP, runs your scripts, and writes everything to local JSON — crash-safely, one file per collection and one JSONL line per run.</p>
+      </div>
+    </section>
+
+    <footer>
+      <p>Generated as a code-flow study of the <strong>Rewind</strong> codebase. File references use <code>path:line</code> from <code>src/</code>. Read “relay” throughout as the historical name of the app and its IPC bridge.</p>
+    </footer>
+  </main>
+</div>
+
+<script>
+  // Theme toggle: cycles system → light → dark, stamping data-theme.
+  (function () {
+    const btn = document.getElementById('themeBtn');
+    const root = document.documentElement;
+    let mode = 'system';
+    const label = () => btn.textContent = mode === 'system' ? '◐ THEME' : (mode === 'dark' ? '● DARK' : '○ LIGHT');
+    btn.addEventListener('click', () => {
+      mode = mode === 'system' ? 'light' : (mode === 'light' ? 'dark' : 'system');
+      if (mode === 'system') root.removeAttribute('data-theme');
+      else root.setAttribute('data-theme', mode);
+      label();
+    });
+    label();
+  })();
+
+  // Scroll-spy: highlight the active TOC entry.
+  (function () {
+    const links = Array.from(document.querySelectorAll('#tocNav a'));
+    const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const a = map.get(e.target.id);
+          if (a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-10% 0px -80% 0px', threshold: 0 });
+    document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
+  })();
+</script>
+
+<!-- Standalone-only: render the Mermaid diagrams when this file is opened directly in a browser.
+     (The claude.ai artifact host renders <pre class="mermaid"> natively and ignores this.) -->
+<script type="module">
+  try {
+    const isDark = () => {
+      const t = document.documentElement.getAttribute('data-theme');
+      if (t) return t === 'dark';
+      return matchMedia('(prefers-color-scheme: dark)').matches;
+    };
+    const mermaid = (await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')).default;
+    const init = () => mermaid.initialize({ startOnLoad: true, theme: isDark() ? 'dark' : 'neutral' });
+    init();
+  } catch (e) {
+    // Offline or blocked: diagrams stay as readable text. No action needed.
+  }
+</script>
+</body>
+</html>
