@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Search } from "lucide-react";
 import type {
   Collection,
   FolderNode,
@@ -147,7 +148,7 @@ export function Sidebar(): React.JSX.Element {
     <div className="sidebar" onContextMenu={(e) => onContext(e, emptyAreaMenu)}>
       <div className="sb-search-wrap">
         <div className="sb-search">
-          <span className="sb-search-icon">⌕</span>
+          <Search className="sb-search-icon" size={15} strokeWidth={2} />
           <input
             ref={searchRef}
             placeholder="Search"

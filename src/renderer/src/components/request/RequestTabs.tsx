@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { Search } from "lucide-react";
 import type {
   Capture,
   FormField,
@@ -117,14 +118,14 @@ export function RequestTabs({
           </button>
         ))}
         <button
-          className="text-btn tabs-find-btn"
+          className="text-btn tabs-find-btn icon-tb"
           title="Find in request body (⌘F)"
           onClick={() => {
             setTab("body");
             useUi.getState().setFind({ open: true, scope: "request", idx: 0 });
           }}
         >
-          <span className="find-glyph">⌕</span>
+          <Search size={15} strokeWidth={2} />
         </button>
       </div>
       <div

@@ -3,6 +3,7 @@ import { useApp, useMergedVars } from "@/stores/app";
 import { useRuns } from "@/stores/runs";
 import { useUi } from "@/stores/ui";
 import { useEffect, useMemo, useRef } from "react";
+import { Search, PanelRight, Bookmark, RotateCw } from "lucide-react";
 import { fmtBytes, fmtMs, prettyJson } from "@/lib/format";
 import { resolveForCodegen } from "@/lib/resolve";
 import { charWidth, findMatches, normIndex } from "@/lib/find";
@@ -120,34 +121,37 @@ export function ResponsePane({
           </span>
         )}
         {run?.error && !sending && (
-          <button className="text-btn retry-btn" onClick={() => void send()}>
-            ↻ Retry
+          <button
+            className="text-btn retry-btn copy-trigger"
+            onClick={() => void send()}
+          >
+            <RotateCw size={14} strokeWidth={2} /> Retry
           </button>
         )}
         <div className="flex-spacer" />
         <button
-          className="text-btn"
+          className="text-btn icon-tb"
           title="Find in response (⌘F)"
           onClick={() =>
             useUi.getState().setFind({ open: true, scope: "response", idx: 0 })
           }
         >
-          <span className="find-glyph">⌕</span>
+          <Search size={15} strokeWidth={2} />
         </button>
         <button
-          className="text-btn"
+          className="text-btn icon-tb"
           title={historyPanelOpen ? "Hide history panel" : "Show history panel"}
           onClick={() => patchSettings({ historyPanelOpen: !historyPanelOpen })}
         >
-          ◨
+          <PanelRight size={15} strokeWidth={2} />
         </button>
         <CopyMenu req={codegenReq} />
         <button
-          className="text-btn"
+          className="text-btn copy-trigger"
           onClick={() => void saveExample()}
           disabled={!run?.response}
         >
-          ◇ Save example
+          <Bookmark size={15} strokeWidth={2} /> Save example
         </button>
       </div>
       <div className="resp-body" ref={bodyRef}>

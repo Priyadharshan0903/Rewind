@@ -525,8 +525,7 @@ textarea {
 
 .sb-search-icon {
   color: var(--text3);
-  font-size: 16px;
-  line-height: 1;
+  flex: none;
 }
 
 .sb-search input {
@@ -804,6 +803,10 @@ textarea {
 
 .method-options {
   color: var(--options);
+}
+
+.method-query {
+  color: var(--query);
 }
 
 /* ---------- body mode switcher & form grids ---------- */
@@ -1665,11 +1668,11 @@ textarea {
 }
 
 /* Enlarged magnifier glyph for find/search buttons. */
-.find-glyph {
-  font-size: 16px;
-  line-height: 1;
-  display: inline-block;
-  vertical-align: middle;
+/* Icon-only toolbar buttons — center the Lucide glyph. */
+.icon-tb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .text-btn:disabled {
@@ -3373,23 +3376,34 @@ textarea {
   color: var(--text3);
 }
 
-/* "Copy as" control sitting next to Send in the URL row */
+/* "Copy as" trigger — clipboard glyph + optional label */
+.copy-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.copy-caret {
+  color: var(--text3);
+  margin-left: -1px;
+}
+
+/* Icon-only "Copy as" control sitting next to Send in the URL row */
 .url-copy {
   flex: none;
 }
-.url-copy .text-btn {
+.copy-icon-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 34px;
   height: 34px;
-  padding: 0 13px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text2);
-  font-size: 12.5px;
-  font-weight: 500;
+  font-size: 16px;
 }
-.url-copy .text-btn:hover:not(:disabled) {
+.copy-icon-btn:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
 }

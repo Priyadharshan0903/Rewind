@@ -18,6 +18,7 @@ const METHODS: HttpMethod[] = [
   "DELETE",
   "HEAD",
   "OPTIONS",
+  "QUERY",
 ];
 
 /* ---------- Postman shapes (v2.x collection, v1 dump, environment) ---------- */

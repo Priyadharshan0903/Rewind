@@ -12,7 +12,7 @@ import { useVarSuggest } from '@/components/common/VarSuggest'
 import { varHoverHandlers } from '@/components/common/VarPeek'
 import { CopyMenu } from '@/components/common/CopyMenu'
 
-const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
+const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'QUERY']
 
 export function RequestTitle({
   request,
@@ -103,7 +103,7 @@ export function UrlRow({ request }: { request: RequestNode }): React.JSX.Element
       <MethodSelect method={request.method} onChange={(method) => updateRequest({ method })} />
       <UrlInput url={request.url} onChange={(url) => updateRequest({ url })} onImportCurl={importCurl} />
       <div className="url-copy">
-        <CopyMenu req={codegenReq} />
+        <CopyMenu req={codegenReq} compact />
       </div>
       <button className="send-btn" onClick={() => (sending ? cancelSend() : void send())}>
         {sending ? 'Cancel' : 'Send'}

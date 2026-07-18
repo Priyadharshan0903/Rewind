@@ -8,7 +8,7 @@ import { dayLabel, fmtBytes, fmtMs, prettyJson, runTime, timeOfDay, urlPath } fr
 import { CodeView } from '@/components/common/Code'
 import { CopyMenu } from '@/components/common/CopyMenu'
 
-const METHODS: (HttpMethod | 'all')[] = ['all', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+const METHODS: (HttpMethod | 'all')[] = ['all', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'QUERY']
 
 export function HistoryPage(): React.JSX.Element {
   const allRuns = useRuns((s) => s.allRuns)

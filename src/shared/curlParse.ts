@@ -49,7 +49,7 @@ function shellWords(input: string): string[] {
   return words
 }
 
-const METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'])
+const METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'QUERY'])
 
 export function looksLikeCurl(text: string): boolean {
   return /^\s*curl\s/i.test(text)
