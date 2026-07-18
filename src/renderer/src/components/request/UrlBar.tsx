@@ -7,8 +7,10 @@ import { useApp, useMergedVars } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
 import { useUi } from '@/stores/ui'
 import { findParentFolder } from '@/lib/tree'
+import { resolveForCodegen } from '@/lib/resolve'
 import { useVarSuggest } from '@/components/common/VarSuggest'
 import { varHoverHandlers } from '@/components/common/VarPeek'
+import { CopyMenu } from '@/components/common/CopyMenu'
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
 
@@ -57,6 +59,9 @@ export function UrlRow({ request }: { request: RequestNode }): React.JSX.Element
   const send = useRuns((s) => s.send)
   const cancelSend = useRuns((s) => s.cancelSend)
   const toast = useUi((s) => s.toast)
+  const vars = useMergedVars()
+  // Resolve the current request for code snippets — no send required.
+  const codegenReq = useMemo(() => resolveForCodegen(request, vars), [request, vars])
 
   const importCurl = (parsed: ParsedCurl): void => {
     let body: RequestNode['body']
@@ -97,6 +102,9 @@ export function UrlRow({ request }: { request: RequestNode }): React.JSX.Element
     <div className="url-row">
       <MethodSelect method={request.method} onChange={(method) => updateRequest({ method })} />
       <UrlInput url={request.url} onChange={(url) => updateRequest({ url })} onImportCurl={importCurl} />
+      <div className="url-copy">
+        <CopyMenu req={codegenReq} />
+      </div>
       <button className="send-btn" onClick={() => (sending ? cancelSend() : void send())}>
         {sending ? 'Cancel' : 'Send'}
         {!sending && <span className="send-kbd">⌘↩</span>}

@@ -12,6 +12,8 @@ export interface KV {
   key: string;
   value: string;
   enabled: boolean;
+  /** Optional note shown in the headers/params table (never sent). */
+  description?: string;
 }
 
 /** One urlencoded / form-data field; for `type: 'file'`, `value` is the file path. */

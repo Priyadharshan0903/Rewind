@@ -1,5 +1,11 @@
-import { useMemo, useRef } from "react";
-import type { Capture, FormField, KV, RequestNode } from "@shared/types";
+import { useMemo, useRef, useState } from "react";
+import type {
+  Capture,
+  FormField,
+  KV,
+  RequestAuth,
+  RequestNode,
+} from "@shared/types";
 import { newId } from "@shared/id";
 import { paramsFromUrl, urlWithParams } from "@shared/params";
 import { evalCapture } from "@shared/captures";
@@ -160,48 +166,18 @@ function ParamsTab({ request }: { request: RequestNode }): React.JSX.Element {
     [request.params, request.url],
   );
 
-  const commit = (next: KV[]): void => {
-    updateRequest({ params: next, url: urlWithParams(request.url, next) });
-  };
-  const patchParam = (id: string, patch: Partial<KV>): void => {
-    commit(params.map((p) => (p.id === id ? { ...p, ...patch } : p)));
-  };
-
   return (
-    <div className="headers-grid">
-      <div className="header-row header-labels">
-        <span />
-        <span className="micro-label">KEY</span>
-        <span className="micro-label">VALUE</span>
-        <span />
-      </div>
-      {params.map((p) => (
-        <KVRow
-          key={p.id}
-          row={p}
-          keyPlaceholder="param"
-          patch={patchParam}
-          remove={(id) => commit(params.filter((x) => x.id !== id))}
-        />
-      ))}
-      <button
-        className="link-btn add-header"
-        onClick={() =>
-          updateRequest({
-            params: [
-              ...params,
-              { id: newId(6), key: "", value: "", enabled: true },
-            ],
-          })
+    <div className="kv-tab">
+      <KvTable
+        rows={params}
+        keyPlaceholder="param"
+        onChange={(next) =>
+          updateRequest({ params: next, url: urlWithParams(request.url, next) })
         }
-      >
-        + Add param
-      </button>
-      {!params.length && (
-        <div className="tab-hint">
-          Rows stay in sync with the query string in the URL bar.
-        </div>
-      )}
+      />
+      <div className="tab-hint">
+        Rows stay in sync with the query string in the URL bar.
+      </div>
     </div>
   );
 }
@@ -366,46 +342,139 @@ function FormGrid({ request }: { request: RequestNode }): React.JSX.Element {
   );
 }
 
-/** Plain key/value row (no var-suggest) shared by the Params grid. */
-function KVRow({
+/**
+ * Postman-style key/value grid with a trailing blank add-row. Typing into the
+ * blank row promotes it to a real row (it keeps the same React key, so focus is
+ * preserved) and a fresh blank row appears below. The value column gets
+ * {{variable}} autocomplete + hover peek.
+ */
+function KvTable({
+  rows,
+  onChange,
+  keyPlaceholder = "key",
+}: {
+  rows: KV[];
+  onChange: (rows: KV[]) => void;
+  keyPlaceholder?: string;
+}): React.JSX.Element {
+  const [addId, setAddId] = useState(() => newId(6));
+
+  const patch = (id: string, p: Partial<KV>): void => {
+    if (rows.some((r) => r.id === id)) {
+      onChange(rows.map((r) => (r.id === id ? { ...r, ...p } : r)));
+    } else {
+      // The blank row was edited — promote it, mint a fresh blank id.
+      onChange([...rows, { id, key: "", value: "", enabled: true, ...p }]);
+      setAddId(newId(6));
+    }
+  };
+  const remove = (id: string): void =>
+    onChange(rows.filter((r) => r.id !== id));
+
+  const display: KV[] = [
+    ...rows,
+    { id: addId, key: "", value: "", enabled: true },
+  ];
+
+  return (
+    <div className="kv-table">
+      <div className="kv-row kv-head">
+        <span />
+        <span className="micro-label">KEY</span>
+        <span className="micro-label">VALUE</span>
+        <span className="micro-label">DESCRIPTION</span>
+        <span />
+      </div>
+      {display.map((row) => (
+        <KvTableRow
+          key={row.id}
+          row={row}
+          blank={row.id === addId}
+          keyPlaceholder={keyPlaceholder}
+          patch={patch}
+          remove={remove}
+        />
+      ))}
+    </div>
+  );
+}
+
+function KvTableRow({
   row,
+  blank,
   keyPlaceholder,
   patch,
   remove,
 }: {
   row: KV;
+  blank: boolean;
   keyPlaceholder: string;
   patch: (id: string, p: Partial<KV>) => void;
   remove: (id: string) => void;
 }): React.JSX.Element {
+  const vars = useMergedVars();
+  const suggest = useVarSuggest({
+    vars,
+    mode: "input",
+    font: '400 12px "JetBrains Mono", monospace',
+    padLeft: 0,
+    apply: (text, caret, el) => {
+      patch(row.id, { value: text });
+      requestAnimationFrame(() => {
+        el.selectionStart = el.selectionEnd = caret;
+      });
+    },
+  });
+
+  const rowClass = `kv-row${!blank && !row.enabled ? " kv-off" : ""}${blank ? " kv-blank" : ""}`;
   return (
-    <div className={row.enabled ? "header-row" : "header-row header-off"}>
+    <div className={rowClass}>
       <input
         type="checkbox"
-        checked={row.enabled}
+        className="kv-check"
+        checked={blank ? false : row.enabled}
+        disabled={blank}
         onChange={(e) => patch(row.id, { enabled: e.target.checked })}
       />
       <input
-        className="header-key code-font"
+        className="kv-input code-font"
         placeholder={keyPlaceholder}
         value={row.key}
         onChange={(e) => patch(row.id, { key: e.target.value })}
         spellCheck={false}
       />
       <input
-        className="header-value code-font"
+        className="kv-input code-font"
         placeholder="value"
         value={row.value}
-        onChange={(e) => patch(row.id, { value: e.target.value })}
+        {...varHoverHandlers({ font: '400 12px "JetBrains Mono", monospace' })}
+        onChange={(e) => {
+          patch(row.id, { value: e.target.value });
+          suggest.check(e.target);
+        }}
+        onKeyDown={(e) => suggest.onKeyDown(e)}
+        onBlur={suggest.onBlur}
         spellCheck={false}
       />
-      <button
-        className="icon-btn"
-        title="Remove"
-        onClick={() => remove(row.id)}
-      >
-        ✕
-      </button>
+      <input
+        className="kv-input kv-desc"
+        placeholder="description"
+        value={row.description ?? ""}
+        onChange={(e) => patch(row.id, { description: e.target.value })}
+        spellCheck={false}
+      />
+      {blank ? (
+        <span className="kv-remove-slot" />
+      ) : (
+        <button
+          className="kv-remove"
+          title="Remove"
+          onClick={() => remove(row.id)}
+        >
+          ✕
+        </button>
+      )}
+      {suggest.dropdown}
     </div>
   );
 }
@@ -415,118 +484,21 @@ function HeadersTab({ request }: { request: RequestNode }): React.JSX.Element {
   const vars = useMergedVars();
   const inheritsAuth = request.auth.mode === "inherit" && !!vars.token;
 
-  const patchHeader = (id: string, patch: Partial<KV>): void => {
-    updateRequest({
-      headers: request.headers.map((h) =>
-        h.id === id ? { ...h, ...patch } : h,
-      ),
-    });
-  };
-  const removeHeader = (id: string): void => {
-    updateRequest({ headers: request.headers.filter((h) => h.id !== id) });
-  };
-  const addHeader = (): void => {
-    updateRequest({
-      headers: [
-        ...request.headers,
-        { id: newId(6), key: "", value: "", enabled: true },
-      ],
-    });
-  };
-
   return (
-    <div className="headers-grid">
-      <div className="header-row header-labels">
-        <span />
-        <span className="micro-label">KEY</span>
-        <span className="micro-label">VALUE</span>
-        <span />
-      </div>
+    <div className="kv-tab">
       {inheritsAuth && (
-        <div className="header-row header-inherited">
-          <span />
-          <span className="header-key code-font">Authorization</span>
-          <span className="header-value code-font">
-            Bearer {"{{token}}"} · from env
+        <div className="kv-inherited">
+          <span className="kv-inherited-key code-font">Authorization</span>
+          <span className="kv-inherited-val code-font">
+            Bearer {"{{token}}"} · inherited from environment
           </span>
-          <span />
         </div>
       )}
-      {request.headers.map((h) => (
-        <HeaderRow
-          key={h.id}
-          header={h}
-          patchHeader={patchHeader}
-          removeHeader={removeHeader}
-        />
-      ))}
-      <button className="link-btn add-header" onClick={addHeader}>
-        + Add header
-      </button>
-    </div>
-  );
-}
-
-function HeaderRow({
-  header: h,
-  patchHeader,
-  removeHeader,
-}: {
-  header: KV;
-  patchHeader: (id: string, patch: Partial<KV>) => void;
-  removeHeader: (id: string) => void;
-}): React.JSX.Element {
-  const vars = useMergedVars();
-  const suggest = useVarSuggest({
-    vars,
-    mode: "input",
-    font: '400 12px "JetBrains Mono", monospace',
-    padLeft: 0,
-    apply: (text, caret, el) => {
-      patchHeader(h.id, { value: text });
-      requestAnimationFrame(() => {
-        el.selectionStart = el.selectionEnd = caret;
-      });
-    },
-  });
-
-  return (
-    <div className={h.enabled ? "header-row" : "header-row header-off"}>
-      <input
-        type="checkbox"
-        checked={h.enabled}
-        onChange={(e) => patchHeader(h.id, { enabled: e.target.checked })}
+      <KvTable
+        rows={request.headers}
+        keyPlaceholder="Header"
+        onChange={(next) => updateRequest({ headers: next })}
       />
-      <input
-        className="header-key code-font"
-        placeholder="Header"
-        value={h.key}
-        onChange={(e) => patchHeader(h.id, { key: e.target.value })}
-        spellCheck={false}
-      />
-      <input
-        className="header-value code-font"
-        placeholder="Value"
-        value={h.value}
-        {...varHoverHandlers({ font: '400 12px "JetBrains Mono", monospace' })}
-        onChange={(e) => {
-          patchHeader(h.id, { value: e.target.value });
-          suggest.check(e.target);
-        }}
-        onKeyDown={(e) => {
-          suggest.onKeyDown(e);
-        }}
-        onBlur={suggest.onBlur}
-        spellCheck={false}
-      />
-      <button
-        className="icon-btn"
-        title="Remove header"
-        onClick={() => removeHeader(h.id)}
-      >
-        ✕
-      </button>
-      {suggest.dropdown}
     </div>
   );
 }
@@ -546,128 +518,145 @@ function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
     ? `environment · ${env?.name ?? "—"}`
     : "collection variables";
   const mode = request.auth.mode;
+  const setAuth = (patch: Partial<RequestAuth>): void =>
+    updateRequest({ auth: { ...request.auth, ...patch } });
 
   return (
     <div className="auth-tab">
-      <div className="auth-row">
-        <select
-          className="auth-mode"
-          value={mode}
-          onChange={(e) =>
-            updateRequest({
-              auth: { ...request.auth, mode: e.target.value as typeof mode },
-            })
-          }
-        >
-          <option value="inherit">Inherit from environment</option>
-          <option value="bearer">Bearer token</option>
-          <option value="basic">Basic auth</option>
-          <option value="apikey">API key</option>
-          <option value="none">No auth</option>
-        </select>
-      </div>
-      {mode === "inherit" && (
-        <div className="auth-detail">
-          <span className="chip chip-accent">Bearer</span>
-          <span className="auth-token code-font">
-            {envToken ? maskToken(envToken) : "no token variable"}
-          </span>
-          <span className="auth-note">
-            {envToken
-              ? `inherited from ${tokenSource}`
-              : "add a {{token}} variable to inherit auth"}
-          </span>
+      <div className="auth-grid">
+        <div className="auth-grid-row">
+          <span className="auth-field">Type</span>
+          <div className="auth-cell">
+            <select
+              className="auth-select"
+              value={mode}
+              onChange={(e) => setAuth({ mode: e.target.value as typeof mode })}
+            >
+              <option value="inherit">Inherit from environment</option>
+              <option value="bearer">Bearer token</option>
+              <option value="basic">Basic auth</option>
+              <option value="apikey">API key</option>
+              <option value="none">No auth</option>
+            </select>
+          </div>
         </div>
-      )}
-      {mode === "bearer" && (
-        <div className="auth-detail">
-          <span className="chip chip-accent">Bearer</span>
-          <input
-            className="auth-input code-font"
+
+        {mode === "inherit" && (
+          <div className="auth-grid-row">
+            <span className="auth-field">Token</span>
+            <div className="auth-cell auth-cell-static">
+              <span className="auth-token code-font">
+                {envToken ? maskToken(envToken) : "no {{token}} variable"}
+              </span>
+              <span className="auth-note">
+                {envToken
+                  ? `inherited from ${tokenSource}`
+                  : "add a {{token}} variable to inherit auth"}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {mode === "bearer" && (
+          <AuthField
+            label="Token"
             placeholder="token or {{token}}"
             value={request.auth.token ?? ""}
-            onChange={(e) =>
-              updateRequest({
-                auth: { ...request.auth, token: e.target.value },
-              })
-            }
-            spellCheck={false}
+            onChange={(v) => setAuth({ token: v })}
           />
-        </div>
-      )}
-      {mode === "basic" && (
-        <div className="auth-detail auth-fields">
-          <span className="chip chip-accent">Basic</span>
-          <input
-            className="auth-input code-font"
-            placeholder="username or {{user}}"
-            value={request.auth.username ?? ""}
-            onChange={(e) =>
-              updateRequest({
-                auth: { ...request.auth, username: e.target.value },
-              })
-            }
-            spellCheck={false}
-          />
-          <input
-            className="auth-input code-font"
-            type="password"
-            placeholder="password or {{password}}"
-            value={request.auth.password ?? ""}
-            onChange={(e) =>
-              updateRequest({
-                auth: { ...request.auth, password: e.target.value },
-              })
-            }
-            spellCheck={false}
-          />
-        </div>
-      )}
-      {mode === "apikey" && (
-        <div className="auth-detail auth-fields">
-          <span className="chip chip-accent">API key</span>
-          <input
-            className="auth-input code-font"
-            placeholder="key, e.g. X-Api-Key"
-            value={request.auth.key ?? ""}
-            onChange={(e) =>
-              updateRequest({ auth: { ...request.auth, key: e.target.value } })
-            }
-            spellCheck={false}
-          />
-          <input
-            className="auth-input code-font"
-            placeholder="value or {{apiKey}}"
-            value={request.auth.value ?? ""}
-            onChange={(e) =>
-              updateRequest({
-                auth: { ...request.auth, value: e.target.value },
-              })
-            }
-            spellCheck={false}
-          />
-          <select
-            className="auth-mode auth-addto"
-            value={request.auth.addTo ?? "header"}
-            onChange={(e) =>
-              updateRequest({
-                auth: {
-                  ...request.auth,
-                  addTo: e.target.value as "header" | "query",
-                },
-              })
-            }
-          >
-            <option value="header">Add to header</option>
-            <option value="query">Add to query</option>
-          </select>
-        </div>
-      )}
-      {mode === "none" && (
-        <div className="auth-detail auth-note">
-          No Authorization header will be sent.
-        </div>
-      )}
+        )}
+
+        {mode === "basic" && (
+          <>
+            <AuthField
+              label="Username"
+              placeholder="username or {{user}}"
+              value={request.auth.username ?? ""}
+              onChange={(v) => setAuth({ username: v })}
+            />
+            <AuthField
+              label="Password"
+              type="password"
+              placeholder="password or {{password}}"
+              value={request.auth.password ?? ""}
+              onChange={(v) => setAuth({ password: v })}
+            />
+          </>
+        )}
+
+        {mode === "apikey" && (
+          <>
+            <AuthField
+              label="Key"
+              placeholder="e.g. X-Api-Key"
+              value={request.auth.key ?? ""}
+              onChange={(v) => setAuth({ key: v })}
+            />
+            <AuthField
+              label="Value"
+              placeholder="value or {{apiKey}}"
+              value={request.auth.value ?? ""}
+              onChange={(v) => setAuth({ value: v })}
+            />
+            <div className="auth-grid-row">
+              <span className="auth-field">Add to</span>
+              <div className="auth-cell">
+                <select
+                  className="auth-select"
+                  value={request.auth.addTo ?? "header"}
+                  onChange={(e) =>
+                    setAuth({ addTo: e.target.value as "header" | "query" })
+                  }
+                >
+                  <option value="header">Header</option>
+                  <option value="query">Query params</option>
+                </select>
+              </div>
+            </div>
+          </>
+        )}
+
+        {mode === "none" && (
+          <div className="auth-grid-row">
+            <span className="auth-field" />
+            <div className="auth-cell auth-cell-static">
+              <span className="auth-note">
+                No Authorization header will be sent.
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AuthField({
+  label,
+  value,
+  placeholder,
+  onChange,
+  type,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+  type?: string;
+}): React.JSX.Element {
+  return (
+    <div className="auth-grid-row">
+      <span className="auth-field">{label}</span>
+      <div className="auth-cell">
+        <input
+          className="auth-input code-font"
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          spellCheck={false}
+        />
+      </div>
     </div>
   );
 }
