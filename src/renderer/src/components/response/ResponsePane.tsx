@@ -114,7 +114,7 @@ export function ResponsePane({ request }: { request: RequestNode }): React.JSX.E
           title="Find in response (⌘F)"
           onClick={() => useUi.getState().setFind({ open: true, scope: 'response', idx: 0 })}
         >
-          ⌕
+          <span className="find-glyph">⌕</span>
         </button>
         <button
           className="text-btn"

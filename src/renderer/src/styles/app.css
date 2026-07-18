@@ -525,7 +525,8 @@ textarea {
 
 .sb-search-icon {
   color: var(--text3);
-  font-size: 12px;
+  font-size: 16px;
+  line-height: 1;
 }
 
 .sb-search input {
@@ -565,6 +566,64 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 1px;
+}
+
+/* Quiet hints that occupy the empty lower area of the tree. */
+.sb-hints {
+  margin-top: auto;
+  padding: 12px 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.sb-hints-title {
+  font: 600 10px var(--mono);
+  letter-spacing: 0.8px;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 1px;
+}
+
+.sb-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.sb-hint-keys {
+  display: inline-flex;
+  gap: 2px;
+  flex: none;
+  width: 34px;
+}
+
+.sb-hint-keys .kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 16px;
+  padding: 0 3px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text2);
+}
+
+.sb-hint-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-hints-note {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text3);
 }
 
 .sb-add {
@@ -669,6 +728,13 @@ textarea {
 
 .folder-row:hover {
   background: var(--border2);
+}
+
+/* Folder that holds the currently-selected request gets a faint tint. */
+.folder-holds-active,
+.folder-holds-active:hover {
+  background: color-mix(in oklab, var(--accent) 6%, transparent);
+  color: var(--text);
 }
 
 .req-row {
@@ -1584,6 +1650,14 @@ textarea {
 
 .text-btn:hover:not(:disabled) {
   color: var(--accent);
+}
+
+/* Enlarged magnifier glyph for find/search buttons. */
+.find-glyph {
+  font-size: 16px;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .text-btn:disabled {

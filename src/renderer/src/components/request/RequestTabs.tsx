@@ -87,7 +87,7 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
             useUi.getState().setFind({ open: true, scope: 'request', idx: 0 })
           }}
         >
-          ⌕
+          <span className="find-glyph">⌕</span>
         </button>
       </div>
       <div className="request-area" style={responsePaneOpen ? undefined : { flex: 1, minHeight: 0 }}>

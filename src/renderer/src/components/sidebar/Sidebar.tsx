@@ -169,11 +169,39 @@ export function Sidebar(): React.JSX.Element {
           collections.map((c) => <CollectionBlock key={c.id} collection={c} />)
         )}
         {!collections.length && <div className="sb-empty">No collections yet — hit + above</div>}
+        {!query.trim() && <SidebarHints />}
       </div>
       <div className="sb-footer">
         <ImportOpenApiButton />
         <ImportPostmanButton />
       </div>
+    </div>
+  )
+}
+
+/** Fills the empty lower area of the sidebar with a few quiet, always-useful hints. */
+function SidebarHints(): React.JSX.Element {
+  const hints: { keys: string[]; label: string }[] = [
+    { keys: ['⌘', 'P'], label: 'Search requests' },
+    { keys: ['⌘', '⏎'], label: 'Send request' },
+    { keys: ['⌥', '↵'], label: 'New request' }
+  ]
+  return (
+    <div className="sb-hints">
+      <div className="sb-hints-title">Shortcuts</div>
+      {hints.map((h) => (
+        <div key={h.label} className="sb-hint">
+          <span className="sb-hint-keys">
+            {h.keys.map((k, i) => (
+              <span key={i} className="kbd">
+                {k}
+              </span>
+            ))}
+          </span>
+          <span className="sb-hint-label">{h.label}</span>
+        </div>
+      ))}
+      <div className="sb-hints-note">All runs stored locally — nothing leaves this machine.</div>
     </div>
   )
 }
@@ -344,6 +372,10 @@ function FolderRow({ folder, collectionId }: { folder: FolderNode; collectionId:
   const app = useApp.getState
   const setRenamingId = useUi((s) => s.setRenamingId)
   const onContext = useContextMenu()
+  // Subtly highlight the folder that directly holds the currently-selected request.
+  const holdsActive = useApp(
+    (s) => !!s.selection && folder.children.some((c) => c.type === 'request' && c.id === s.selection?.requestId)
+  )
 
   const menu: ContextItem[] = [
     { label: 'Add request', action: () => (setOpen(true), app().addRequest(collectionId, folder.id)) },
@@ -366,7 +398,11 @@ function FolderRow({ folder, collectionId }: { folder: FolderNode; collectionId:
 
   return (
     <>
-      <div className="folder-row" onClick={() => setOpen((v) => !v)} onContextMenu={(e) => onContext(e, menu)}>
+      <div
+        className={`folder-row ${holdsActive ? 'folder-holds-active' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+        onContextMenu={(e) => onContext(e, menu)}
+      >
         <span className="tree-caret">{open ? '▾' : '▸'}</span>
         <EditableLabel
           id={folder.id}
