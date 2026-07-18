@@ -2338,12 +2338,18 @@ textarea {
 .profile-name {
   font-size: 12.5px;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .profile-sub {
   font-size: 10.5px;
   color: var(--text3);
-  white-space: nowrap;
+  line-height: 1.4;
+  /* Wrap instead of clipping — the header column is narrow (min-width: 0). */
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 /* environments modal */

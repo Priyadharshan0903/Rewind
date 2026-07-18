@@ -155,6 +155,44 @@ export function buildSeed(): SeedData {
     ]
   }
 
+  // A tiny, runnable tutorial for request chaining against real, no-auth APIs.
+  // Send "1 · Get a post" → it captures authorId → "2 · Get the author" resolves {{authorId}}.
+  const demoCollection: Collection = {
+    id: 'col-chaining-demo',
+    name: 'Chaining Demo',
+    version: 'live',
+    items: [
+      req({
+        id: 'req-demo-post',
+        name: '1 · Get a post',
+        method: 'GET',
+        url: 'https://jsonplaceholder.typicode.com/posts/1',
+        headers: [],
+        body: { mode: 'none', text: '' },
+        auth: { mode: 'none' },
+        captures: [{ id: newId(6), enabled: true, source: 'body', path: 'userId', variable: 'authorId' }]
+      }),
+      req({
+        id: 'req-demo-author',
+        name: '2 · Get the author — uses {{authorId}}',
+        method: 'GET',
+        url: 'https://jsonplaceholder.typicode.com/users/{{authorId}}',
+        headers: [],
+        body: { mode: 'none', text: '' },
+        auth: { mode: 'none' }
+      }),
+      req({
+        id: 'req-demo-echo',
+        name: '3 · Echo it back — httpbin',
+        method: 'GET',
+        url: 'https://httpbin.org/anything?author={{authorId}}',
+        headers: [],
+        body: { mode: 'none', text: '' },
+        auth: { mode: 'none' }
+      })
+    ]
+  }
+
   const now = Date.now()
   const min = 60_000
   const yesterday = (h: number, m: number, s: number) => {
@@ -384,5 +422,5 @@ export function buildSeed(): SeedData {
     ;(runFiles[day] ??= []).push(JSON.stringify(run))
   }
 
-  return { workspace, environments, collections: [collection], runFiles }
+  return { workspace, environments, collections: [collection, demoCollection], runFiles }
 }
