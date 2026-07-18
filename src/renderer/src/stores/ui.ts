@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type View = 'runbook' | 'history'
+export type View = 'runbook' | 'history' | 'docs'
 export type RequestTab = 'params' | 'body' | 'headers' | 'auth' | 'scripts'
 
 interface Toast {
@@ -35,6 +35,8 @@ interface UiState {
   /** collection whose variables modal is open */
   collectionVarsId: string | null
   newProfileOpen: boolean
+  /** ⌘K command palette */
+  paletteOpen: boolean
   find: { open: boolean; query: string; scope: 'response' | 'request'; idx: number }
   toasts: Toast[]
   contextMenu: ContextMenuState | null
@@ -42,6 +44,8 @@ interface UiState {
   renamingId: string | null
 
   setView: (view: View) => void
+  togglePalette: () => void
+  closePalette: () => void
   setTab: (tab: RequestTab) => void
   toggleShare: () => void
   toggleProfile: () => void
@@ -73,12 +77,15 @@ export const useUi = create<UiState>((set, get) => ({
   envEditorSelectId: null,
   collectionVarsId: null,
   newProfileOpen: false,
+  paletteOpen: false,
   find: { open: false, query: '', scope: 'response', idx: 0 },
   toasts: [],
   contextMenu: null,
   renamingId: null,
 
   setView: (view) => set({ view }),
+  togglePalette: () => set((s) => ({ paletteOpen: !s.paletteOpen })),
+  closePalette: () => set({ paletteOpen: false }),
   setTab: (tab) => set({ tab }),
   toggleShare: () => set((s) => ({ shareOpen: !s.shareOpen, profileOpen: false })),
   toggleProfile: () => set((s) => ({ profileOpen: !s.profileOpen, shareOpen: false })),
@@ -105,6 +112,7 @@ export const useUi = create<UiState>((set, get) => ({
       s.envEditorOpen ||
       !!s.collectionVarsId ||
       s.newProfileOpen ||
+      s.paletteOpen ||
       s.find.open ||
       !!s.contextMenu
     if (any) {
@@ -116,6 +124,7 @@ export const useUi = create<UiState>((set, get) => ({
         envEditorOpen: false,
         collectionVarsId: null,
         newProfileOpen: false,
+        paletteOpen: false,
         find: { ...s.find, open: false },
         contextMenu: null
       })

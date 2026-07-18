@@ -18,6 +18,9 @@ export function Titlebar(): React.JSX.Element {
         <button className={view === 'history' ? 'seg-btn seg-active' : 'seg-btn'} onClick={() => setView('history')}>
           History
         </button>
+        <button className={view === 'docs' ? 'seg-btn seg-active' : 'seg-btn'} onClick={() => setView('docs')}>
+          Docs
+        </button>
       </div>
       <div className="tb-spacer" />
       {view === 'runbook' && <LayoutToggles />}

@@ -5,6 +5,7 @@ import { useUi } from '@/stores/ui'
 import { Titlebar } from '@/components/titlebar/Titlebar'
 import { RunbookView } from '@/components/RunbookView'
 import { HistoryPage } from '@/components/historyView/HistoryPage'
+import { DocsView } from '@/components/docs/DocsView'
 import { ShareModal } from '@/components/modals/ShareModal'
 import { ProfileMenu } from '@/components/modals/ProfileMenu'
 import { PreferencesModal } from '@/components/modals/PreferencesModal'
@@ -15,6 +16,7 @@ import { NewProfileModal } from '@/components/modals/NewProfileModal'
 import { findParentFolderId } from '@/lib/tree'
 import { Toasts } from '@/components/common/Toasts'
 import { ContextMenu } from '@/components/common/ContextMenu'
+import { CommandPalette } from '@/components/common/CommandPalette'
 
 export default function App(): React.JSX.Element {
   const booted = useApp((s) => s.booted)
@@ -29,6 +31,7 @@ export default function App(): React.JSX.Element {
   const envEditorOpen = useUi((s) => s.envEditorOpen)
   const collectionVarsId = useUi((s) => s.collectionVarsId)
   const newProfileOpen = useUi((s) => s.newProfileOpen)
+  const paletteOpen = useUi((s) => s.paletteOpen)
 
   useEffect(() => {
     void hydrate()
@@ -71,6 +74,11 @@ export default function App(): React.JSX.Element {
         e.preventDefault()
         const { settings, patchSettings } = useApp.getState()
         patchSettings({ responsePaneOpen: !settings.responsePaneOpen })
+        return
+      }
+      if (e.code === 'KeyK') {
+        e.preventDefault()
+        ui.togglePalette()
         return
       }
       switch (e.key) {
@@ -131,7 +139,7 @@ export default function App(): React.JSX.Element {
   return (
     <div className="app">
       <Titlebar />
-      {view === 'runbook' ? <RunbookView /> : <HistoryPage />}
+      {view === 'runbook' ? <RunbookView /> : view === 'history' ? <HistoryPage /> : <DocsView />}
       {shareOpen && <ShareModal />}
       {profileOpen && <ProfileMenu />}
       {prefsOpen && <PreferencesModal />}
@@ -139,6 +147,7 @@ export default function App(): React.JSX.Element {
       {envEditorOpen && <EnvironmentsModal />}
       {collectionVarsId && <CollectionVarsModal />}
       {newProfileOpen && <NewProfileModal />}
+      {paletteOpen && <CommandPalette />}
       <ContextMenu />
       <Toasts />
     </div>

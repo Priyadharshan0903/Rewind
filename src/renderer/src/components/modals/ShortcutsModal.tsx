@@ -3,6 +3,7 @@ import { Overlay } from '@/components/common/Overlay'
 
 const SHORTCUTS: [string, string][] = [
   ['⌘ ↩', 'Send request'],
+  ['⌘ K', 'Command palette'],
   ['⌘ S', 'Save request changes'],
   ['⌘ N', 'New request'],
   ['⌘ P', 'Search collection'],

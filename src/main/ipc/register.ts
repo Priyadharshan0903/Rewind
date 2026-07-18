@@ -23,6 +23,7 @@ import type {
 } from '@shared/types'
 import { toSummary } from '@shared/types'
 import { interpolate, varsFromEnv } from '@shared/interpolate'
+import { runCaptures } from '@shared/captures'
 import { newId } from '@shared/id'
 import { cancelSend, sendHttp } from '../services/httpClient'
 import { runScript } from '../services/scriptRunner'
@@ -177,11 +178,21 @@ export function registerIpc(onThemeChange: (settings: Settings) => void): void {
       error: result.error
     }
 
-    if (result.response && req.scripts.postResponse.trim()) {
-      run.script = runScript(req.scripts.postResponse, result.response)
-      const varsSet = Object.entries(run.script.varsSet)
-      if (varsSet.length && env) {
-        for (const [key, value] of varsSet) {
+    if (result.response) {
+      // Declarative captures run first; the post-response script can then override.
+      const varsToSet: Record<string, string> = {}
+      if (req.captures?.length) {
+        const captured = runCaptures(req.captures, result.response)
+        if (Object.keys(captured).length) run.captured = captured
+        Object.assign(varsToSet, captured)
+      }
+      if (req.scripts.postResponse.trim()) {
+        run.script = runScript(req.scripts.postResponse, result.response)
+        Object.assign(varsToSet, run.script.varsSet)
+      }
+      const entries = Object.entries(varsToSet)
+      if (entries.length && env) {
+        for (const [key, value] of entries) {
           const existing = env.variables.find((v) => v.key === key)
           if (existing) existing.value = value
           else env.variables.push({ id: newId(6), key, value, enabled: true })

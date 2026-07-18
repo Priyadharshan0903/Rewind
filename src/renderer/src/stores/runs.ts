@@ -3,6 +3,7 @@ import type { HttpMethod, Run, RunSummary } from '@shared/types'
 import { toSummary } from '@shared/types'
 import { newId } from '@shared/id'
 import { effectiveRequest, useApp } from './app'
+import { useUi } from './ui'
 
 interface RunsState {
   // Runbook right panel (per selected request)
@@ -71,9 +72,13 @@ export const useRuns = create<RunsState>((set, get) => ({
     set({ sending: true, sendId, sendError: null })
     try {
       const run = await window.relay.send({ sendId, collectionId: selection.collectionId, request })
-      // Environment vars may have been updated by the post-response script.
+      // Environment vars may have been updated by the post-response script or captures.
       const boot = await window.relay.getBoot()
       useApp.setState({ environments: boot.environments })
+      const captured = run.captured && Object.keys(run.captured)
+      if (captured && captured.length) {
+        useUi.getState().toast(`Captured ${captured.map((k) => `{{${k}}}`).join(', ')}`)
+      }
       set((s) => ({
         sending: false,
         sendId: null,

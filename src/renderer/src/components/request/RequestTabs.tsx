@@ -1,8 +1,10 @@
 import { useMemo, useRef } from 'react'
-import type { FormField, KV, RequestNode } from '@shared/types'
+import type { Capture, FormField, KV, RequestNode } from '@shared/types'
 import { newId } from '@shared/id'
 import { paramsFromUrl, urlWithParams } from '@shared/params'
+import { evalCapture } from '@shared/captures'
 import { useApp, useActiveEnv, useMergedVars } from '@/stores/app'
+import { useRuns } from '@/stores/runs'
 import { useUi, type RequestTab } from '@/stores/ui'
 import { CodeEditor } from '@/components/common/Code'
 import { useVarSuggest } from '@/components/common/VarSuggest'
@@ -28,6 +30,7 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
   const inheritsAuth = request.auth.mode === 'inherit' && !!vars.token
   const headerCount = request.headers.filter((h) => h.enabled && h.key.trim()).length + (inheritsAuth ? 1 : 0)
   const paramCount = (request.params ?? paramsFromUrl(request.url)).filter((p) => p.enabled && p.key.trim()).length
+  const captureCount = (request.captures ?? []).filter((c) => c.enabled && c.variable.trim()).length
 
   const height = savedHeight
 
@@ -77,6 +80,7 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
             {t.label}
             {t.key === 'headers' && headerCount > 0 && <span className="tab-count">{headerCount}</span>}
             {t.key === 'params' && paramCount > 0 && <span className="tab-count">{paramCount}</span>}
+            {t.key === 'scripts' && captureCount > 0 && <span className="tab-count">{captureCount}</span>}
           </button>
         ))}
         <button
@@ -523,11 +527,128 @@ function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
 function ScriptsTab({ request }: { request: RequestNode }): React.JSX.Element {
   const updateRequest = useApp((s) => s.updateRequest)
   return (
-    <CodeEditor
-      value={request.scripts.postResponse}
-      onChange={(postResponse) => updateRequest({ scripts: { postResponse } })}
-      language="js"
-      placeholder={'// post-response\nvars.set("chargeId", res.json.id)\nassert(res.status === 201)'}
-    />
+    <div className="scripts-tab">
+      <CapturesTable request={request} />
+      <div className="scripts-editor">
+        <div className="scripts-sub">Post-response script</div>
+        <CodeEditor
+          value={request.scripts.postResponse}
+          onChange={(postResponse) => updateRequest({ scripts: { postResponse } })}
+          language="js"
+          placeholder={'// runs after captures\nassert(res.status === 201)\nvars.set("token", res.json.token)'}
+        />
+      </div>
+    </div>
+  )
+}
+
+const CAPTURE_SOURCES: { key: Capture['source']; label: string }[] = [
+  { key: 'body', label: 'Body' },
+  { key: 'header', label: 'Header' },
+  { key: 'status', label: 'Status' }
+]
+
+/** No-code request chaining: pull a value from this response into a variable. */
+function CapturesTable({ request }: { request: RequestNode }): React.JSX.Element {
+  const updateRequest = useApp((s) => s.updateRequest)
+  const currentRun = useRuns((s) => s.currentRun)
+  const captures = request.captures ?? []
+  const resp = currentRun && currentRun.requestId === request.id ? currentRun.response : undefined
+
+  const commit = (next: Capture[]): void => updateRequest({ captures: next })
+  const patch = (id: string, p: Partial<Capture>): void =>
+    commit(captures.map((c) => (c.id === id ? { ...c, ...p } : c)))
+  const add = (): void =>
+    commit([...captures, { id: newId(6), enabled: true, source: 'body', path: '', variable: '' }])
+
+  return (
+    <div className="captures">
+      <div className="captures-head">
+        <span className="captures-title">Capture variables</span>
+        <span className="captures-hint">Pull values from this response into variables for the next request.</span>
+      </div>
+      {captures.length > 0 && (
+        <div className="captures-grid">
+          <div className="capture-row capture-labels">
+            <span />
+            <span className="micro-label">FROM</span>
+            <span className="micro-label">PATH</span>
+            <span />
+            <span className="micro-label">VARIABLE</span>
+            <span className="micro-label">LAST VALUE</span>
+            <span />
+          </div>
+          {captures.map((c) => {
+            const ev = resp ? evalCapture(c, resp) : null
+            return (
+              <div key={c.id} className={c.enabled ? 'capture-row' : 'capture-row capture-off'}>
+                <input
+                  type="checkbox"
+                  checked={c.enabled}
+                  onChange={(e) => patch(c.id, { enabled: e.target.checked })}
+                />
+                <select
+                  className="capture-src"
+                  value={c.source}
+                  onChange={(e) => patch(c.id, { source: e.target.value as Capture['source'] })}
+                >
+                  {CAPTURE_SOURCES.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="capture-path code-font"
+                  placeholder={c.source === 'header' ? 'Header-Name' : c.source === 'status' ? 'status code' : 'data.id'}
+                  value={c.source === 'status' ? '' : c.path}
+                  disabled={c.source === 'status'}
+                  onChange={(e) => patch(c.id, { path: e.target.value })}
+                  spellCheck={false}
+                />
+                <span className="capture-arrow">→</span>
+                <input
+                  className="capture-var code-font"
+                  placeholder="variable"
+                  value={c.variable}
+                  onChange={(e) => patch(c.id, { variable: e.target.value })}
+                  spellCheck={false}
+                />
+                <CaptureValue matched={ev?.matched ?? false} value={ev?.value} hasResp={!!resp} />
+                <button
+                  className="icon-btn"
+                  title="Remove"
+                  onClick={() => commit(captures.filter((x) => x.id !== c.id))}
+                >
+                  ✕
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      <button className="link-btn add-header" onClick={add}>
+        + Add capture
+      </button>
+    </div>
+  )
+}
+
+function CaptureValue({
+  matched,
+  value,
+  hasResp
+}: {
+  matched: boolean
+  value?: string
+  hasResp: boolean
+}): React.JSX.Element {
+  if (!hasResp) return <span className="capture-val capture-muted">send once</span>
+  if (!matched) return <span className="capture-val capture-nomatch">no match</span>
+  const text = (value ?? '').length > 42 ? (value ?? '').slice(0, 42) + '…' : value
+  return (
+    <span className="capture-val capture-ok" title={value}>
+      {text}
+    </span>
   )
 }

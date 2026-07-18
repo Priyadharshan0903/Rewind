@@ -77,6 +77,18 @@ export interface SavedExample {
   savedAt: number
 }
 
+/** Declarative chaining: pull a value out of this response into a variable. */
+export interface Capture {
+  id: string
+  enabled: boolean
+  /** Where to read from: the JSON body, a response header, or the status code. */
+  source: 'body' | 'header' | 'status'
+  /** body: dot/bracket path (e.g. data.id, items[0].id); header: header name; status: ignored. */
+  path: string
+  /** Environment variable to write the captured value into. */
+  variable: string
+}
+
 export interface RequestNode {
   id: string
   type: 'request'
@@ -89,6 +101,8 @@ export interface RequestNode {
   body: RequestBody
   auth: RequestAuth
   scripts: { postResponse: string }
+  /** Response-to-variable captures run after each send (before the script). */
+  captures?: Capture[]
   examples: SavedExample[]
 }
 
@@ -153,6 +167,8 @@ export interface Run {
   request: RunRequest
   response?: RunResponse
   script?: RunScriptResult
+  /** Variables set by declarative captures (name → value), surfaced to the UI. */
+  captured?: Record<string, string>
   error?: string
 }
 
