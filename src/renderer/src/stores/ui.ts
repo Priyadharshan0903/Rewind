@@ -38,6 +38,8 @@ interface UiState {
   /** ⌘K command palette */
   paletteOpen: boolean
   find: { open: boolean; query: string; scope: 'response' | 'request'; idx: number }
+  /** In-page find bar for views without an editor find (History / Docs). */
+  pageFind: { open: boolean }
   toasts: Toast[]
   contextMenu: ContextMenuState | null
   /** id of the sidebar node currently being renamed inline */
@@ -56,6 +58,8 @@ interface UiState {
   openNewProfile: () => void
   setFind: (patch: Partial<UiState['find']>) => void
   closeFind: () => void
+  openPageFind: () => void
+  closePageFind: () => void
   openContextMenu: (x: number, y: number, items: ContextItem[]) => void
   closeContextMenu: () => void
   setRenamingId: (id: string | null) => void
@@ -79,6 +83,7 @@ export const useUi = create<UiState>((set, get) => ({
   newProfileOpen: false,
   paletteOpen: false,
   find: { open: false, query: '', scope: 'response', idx: 0 },
+  pageFind: { open: false },
   toasts: [],
   contextMenu: null,
   renamingId: null,
@@ -98,6 +103,8 @@ export const useUi = create<UiState>((set, get) => ({
   openNewProfile: () => set({ newProfileOpen: true, profileOpen: false, shareOpen: false }),
   setFind: (patch) => set((s) => ({ find: { ...s.find, ...patch } })),
   closeFind: () => set((s) => ({ find: { ...s.find, open: false } })),
+  openPageFind: () => set({ pageFind: { open: true } }),
+  closePageFind: () => set({ pageFind: { open: false } }),
   openContextMenu: (x, y, items) => set({ contextMenu: { x, y, items } }),
   closeContextMenu: () => set({ contextMenu: null }),
   setRenamingId: (renamingId) => set({ renamingId }),
@@ -114,9 +121,11 @@ export const useUi = create<UiState>((set, get) => ({
       s.newProfileOpen ||
       s.paletteOpen ||
       s.find.open ||
+      s.pageFind.open ||
       !!s.contextMenu
     if (any) {
       set({
+        pageFind: { open: false },
         shareOpen: false,
         profileOpen: false,
         prefsOpen: false,

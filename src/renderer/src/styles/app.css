@@ -2069,6 +2069,9 @@ textarea {
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
+  /* Pin the row to the available height so each column scrolls internally
+     instead of the row growing to fit its content. */
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .snap-col {
@@ -2076,6 +2079,9 @@ textarea {
   flex-direction: column;
   min-height: 0;
   min-width: 0;
+  /* Scroll the whole column (headers + body) — a long header list must not
+     push the body out of view. */
+  overflow-y: auto;
 }
 
 .snap-col-left {
@@ -2122,9 +2128,7 @@ textarea {
 }
 
 .snap-body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+  flex: none;
   padding: 14px 16px;
 }
 
@@ -2139,29 +2143,31 @@ textarea {
   color: var(--text2);
 }
 
-.kv-grid {
+/* Read-only header grid (History snapshot). Namespaced .hdr-* so it can't
+   collide with the editable Postman grid's .kv-row (which is a 5-col layout). */
+.hdr-grid {
   display: flex;
   flex-direction: column;
 }
 
-.kv-row {
+.hdr-row {
   display: grid;
-  grid-template-columns: 150px 1fr;
-  gap: 10px;
+  grid-template-columns: 190px 1fr;
+  gap: 12px;
   padding: 4px 0;
   border-bottom: 1px solid var(--border2);
-  font-size: 11px;
+  font-size: 11.5px;
 }
 
-.kv-key {
+.hdr-key {
   color: var(--j-key);
+  word-break: break-word;
 }
 
-.kv-value {
+.hdr-value {
   color: var(--text2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* ---------- modals ---------- */
@@ -3434,4 +3440,21 @@ textarea {
 .caret {
   flex: none;
   color: var(--text3);
+}
+
+/* ---------- in-page find (History / Docs) ---------- */
+/* Reuses .find-bar styling; only the anchoring differs (fixed, below the titlebar). */
+.page-find-bar {
+  position: fixed;
+  top: 54px;
+  right: 20px;
+  z-index: 60;
+}
+
+/* Match the Runbook find marks: accent tint for all hits, warn for the active one. */
+::highlight(rewind-find) {
+  background-color: color-mix(in oklab, var(--accent) 22%, transparent);
+}
+::highlight(rewind-find-current) {
+  background-color: color-mix(in oklab, var(--warn) 55%, transparent);
 }

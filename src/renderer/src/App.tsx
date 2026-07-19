@@ -17,6 +17,7 @@ import { findParentFolderId } from "@/lib/tree";
 import { Toasts } from "@/components/common/Toasts";
 import { ContextMenu } from "@/components/common/ContextMenu";
 import { CommandPalette } from "@/components/common/CommandPalette";
+import { InPageFind } from "@/components/common/InPageFind";
 
 export default function App(): React.JSX.Element {
   const booted = useApp((s) => s.booted);
@@ -32,6 +33,7 @@ export default function App(): React.JSX.Element {
   const collectionVarsId = useUi((s) => s.collectionVarsId);
   const newProfileOpen = useUi((s) => s.newProfileOpen);
   const paletteOpen = useUi((s) => s.paletteOpen);
+  const pageFindOpen = useUi((s) => s.pageFind.open);
 
   useEffect(() => {
     void hydrate();
@@ -41,6 +43,11 @@ export default function App(): React.JSX.Element {
     document.documentElement.dataset.theme = theme;
     document.documentElement.dataset.accent = accent;
   }, [theme, accent]);
+
+  // Switching views dismisses the in-page find bar (and clears its highlights).
+  useEffect(() => {
+    useUi.getState().closePageFind();
+  }, [view]);
 
   useEffect(() => {
     return window.rewind.onRunAppended((summary) =>
@@ -113,16 +120,20 @@ export default function App(): React.JSX.Element {
           break;
         case "f": {
           e.preventDefault();
-          ui.setView("runbook");
-          // Context-aware: ⌘F inside the body editor finds in the request.
-          const inEditor =
-            document.activeElement?.classList.contains("ed-input");
-          ui.setFind({
-            open: true,
-            scope: inEditor ? "request" : "response",
-            idx: 0,
-          });
-          if (inEditor) ui.setTab("body");
+          if (ui.view === "runbook") {
+            // Context-aware: ⌘F inside the body editor finds in the request.
+            const inEditor =
+              document.activeElement?.classList.contains("ed-input");
+            ui.setFind({
+              open: true,
+              scope: inEditor ? "request" : "response",
+              idx: 0,
+            });
+            if (inEditor) ui.setTab("body");
+          } else {
+            // History / Docs have no editor find — use the in-page find.
+            ui.openPageFind();
+          }
           break;
         }
         case "n": {
@@ -166,6 +177,7 @@ export default function App(): React.JSX.Element {
       {collectionVarsId && <CollectionVarsModal />}
       {newProfileOpen && <NewProfileModal />}
       {paletteOpen && <CommandPalette />}
+      {pageFindOpen && <InPageFind />}
       <ContextMenu />
       <Toasts />
     </div>

@@ -204,11 +204,11 @@ function Snapshot({ run }: { run: Run }): React.JSX.Element {
 
 function KvGrid({ pairs }: { pairs: [string, string][] }): React.JSX.Element {
   return (
-    <div className="kv-grid">
+    <div className="hdr-grid">
       {pairs.map(([k, v], i) => (
-        <div key={i} className="kv-row">
-          <span className="kv-key code-font">{k}</span>
-          <span className="kv-value code-font">{v}</span>
+        <div key={i} className="hdr-row">
+          <span className="hdr-key code-font">{k}</span>
+          <span className="hdr-value code-font">{v}</span>
         </div>
       ))}
     </div>
