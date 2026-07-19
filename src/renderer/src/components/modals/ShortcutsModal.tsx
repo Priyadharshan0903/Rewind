@@ -6,7 +6,7 @@ const SHORTCUTS: [string, string][] = [
   ['⌘ ↩', 'Send request'],
   ['⌘ K', 'Command palette'],
   ['⌘ S', 'Save request changes'],
-  ['⌘ N', 'New request'],
+  ['⌥ ↵', 'New request'],
   ['⌘ P', 'Search collection'],
   ['⌘ F', 'Find in request / response'],
   ['⌘ E', 'Environments & variables'],

@@ -63,10 +63,35 @@ export default function App(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
+    const newRequest = (): void => {
+      const app = useApp.getState()
+      const collectionId = app.selection?.collectionId ?? app.collections[0]?.id
+      if (!collectionId) return
+      const collection = app.collections.find((c) => c.id === collectionId)
+      const folderId =
+        app.selection && collection
+          ? findParentFolderId(collection.items, app.selection.requestId)
+          : null
+      useUi.getState().setView('runbook')
+      app.addRequest(collectionId, folderId)
+    }
+
     const onKey = (e: KeyboardEvent): void => {
       const ui = useUi.getState()
       if (e.key === 'Escape') {
         if (ui.closeOverlays()) e.preventDefault()
+        return
+      }
+      // ⌥↵ (Option+Enter) — New request. Handled before the ⌘/⌃ guard below,
+      // since it uses ⌥ rather than the command/control modifier.
+      if (
+        e.altKey &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        (e.code === 'Enter' || e.code === 'NumpadEnter')
+      ) {
+        e.preventDefault()
+        newRequest()
         return
       }
       if (!(e.metaKey || e.ctrlKey)) return
@@ -134,16 +159,7 @@ export default function App(): React.JSX.Element {
         }
         case 'n': {
           e.preventDefault()
-          const app = useApp.getState()
-          const collectionId = app.selection?.collectionId ?? app.collections[0]?.id
-          if (!collectionId) break
-          const collection = app.collections.find((c) => c.id === collectionId)
-          const folderId =
-            app.selection && collection
-              ? findParentFolderId(collection.items, app.selection.requestId)
-              : null
-          ui.setView('runbook')
-          app.addRequest(collectionId, folderId)
+          newRequest()
           break
         }
       }
