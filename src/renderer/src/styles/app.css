@@ -1534,11 +1534,36 @@ textarea {
 
 .copy-menu-wrap {
   position: relative;
+  /* inline-flex so the wrapper hugs the button in any parent (block or flex);
+     otherwise as a plain block its right edge spans the column and the
+     right-anchored menu detaches far from the trigger. */
+  display: inline-flex;
   flex: none;
 }
 
 .copy-menu {
-  min-width: 160px;
+  position: fixed;
+  right: auto;
+  min-width: 190px;
+  max-height: 340px;
+  overflow-y: auto;
+  z-index: 60;
+}
+.copy-group {
+  display: flex;
+  flex-direction: column;
+}
+.copy-group + .copy-group {
+  border-top: 1px solid var(--border2);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.copy-group-label {
+  padding: 5px 8px 3px;
+  color: var(--text3);
+}
+.copy-item {
+  padding-left: 14px;
 }
 
 .retry-btn {

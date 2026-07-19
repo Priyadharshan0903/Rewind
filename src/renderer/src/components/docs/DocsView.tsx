@@ -266,6 +266,7 @@ function EndpointCard({ ep }: { ep: DocEndpoint }): React.JSX.Element {
           )}
           <div className="docs-ep-actions">
             <CopyMenu
+              align="left"
               req={{
                 method: ex.reqMethod,
                 url: ex.reqUrl,
