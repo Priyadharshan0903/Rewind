@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Search, X, Plus, ArrowRight } from "lucide-react";
+import { Search, X, Plus, ArrowRight, ChevronDown, ShieldOff } from "lucide-react";
 import type {
   Capture,
   FormField,
@@ -522,53 +522,82 @@ function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
   const setAuth = (patch: Partial<RequestAuth>): void =>
     updateRequest({ auth: { ...request.auth, ...patch } });
 
+  // Postman shows a helper note under the Type selector explaining how the
+  // header gets generated for the chosen scheme.
+  const helper: Record<typeof mode, string> = {
+    inherit:
+      "The authorization header will be inherited from your active environment’s {{token}} variable.",
+    bearer:
+      "The authorization header will be automatically generated when you send the request.",
+    basic:
+      "The authorization header will be automatically generated when you send the request.",
+    apikey:
+      "The key-value pair will be added to your request as configured when you send it.",
+    none: "This request does not use any authorization.",
+  };
+
   return (
     <div className="auth-tab">
-      <div className="auth-grid">
-        <div className="auth-grid-row">
-          <span className="auth-field">Type</span>
-          <div className="auth-cell">
+      <div className="auth-left">
+        <label className="auth-type">
+          <span className="auth-type-label">Auth Type</span>
+          <div className="auth-select-wrap">
             <select
               className="auth-select"
               value={mode}
               onChange={(e) => setAuth({ mode: e.target.value as typeof mode })}
             >
-              <option value="inherit">Inherit from environment</option>
-              <option value="bearer">Bearer token</option>
-              <option value="basic">Basic auth</option>
-              <option value="apikey">API key</option>
-              <option value="none">No auth</option>
+              <option value="inherit">Inherit auth from environment</option>
+              <option value="bearer">Bearer Token</option>
+              <option value="basic">Basic Auth</option>
+              <option value="apikey">API Key</option>
+              <option value="none">No Auth</option>
             </select>
+            <ChevronDown className="auth-select-caret" size={14} strokeWidth={2} />
           </div>
-        </div>
+        </label>
+        <p className="auth-helper">{helper[mode]}</p>
+      </div>
+
+      <div className="auth-right">
+        {mode === "none" && (
+          <div className="auth-none">
+            <ShieldOff size={22} strokeWidth={1.5} />
+            <span>This request does not use any authorization.</span>
+          </div>
+        )}
 
         {mode === "inherit" && (
-          <div className="auth-grid-row">
-            <span className="auth-field">Token</span>
-            <div className="auth-cell auth-cell-static">
-              <span className="auth-token code-font">
-                {envToken ? maskToken(envToken) : "no {{token}} variable"}
-              </span>
-              <span className="auth-note">
-                {envToken
-                  ? `inherited from ${tokenSource}`
-                  : "add a {{token}} variable to inherit auth"}
-              </span>
+          <div className="auth-fields">
+            <div className="auth-field-row">
+              <span className="auth-field-label">Token</span>
+              <div className="auth-field-static">
+                <span className="auth-token code-font">
+                  {envToken ? maskToken(envToken) : "no {{token}} variable"}
+                </span>
+                <span className="auth-note">
+                  {envToken
+                    ? `inherited from ${tokenSource}`
+                    : "add a {{token}} variable to inherit auth"}
+                </span>
+              </div>
             </div>
           </div>
         )}
 
         {mode === "bearer" && (
-          <AuthField
-            label="Token"
-            placeholder="token or {{token}}"
-            value={request.auth.token ?? ""}
-            onChange={(v) => setAuth({ token: v })}
-          />
+          <div className="auth-fields">
+            <AuthField
+              label="Token"
+              placeholder="token or {{token}}"
+              value={request.auth.token ?? ""}
+              onChange={(v) => setAuth({ token: v })}
+            />
+          </div>
         )}
 
         {mode === "basic" && (
-          <>
+          <div className="auth-fields">
             <AuthField
               label="Username"
               placeholder="username or {{user}}"
@@ -582,11 +611,11 @@ function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
               value={request.auth.password ?? ""}
               onChange={(v) => setAuth({ password: v })}
             />
-          </>
+          </div>
         )}
 
         {mode === "apikey" && (
-          <>
+          <div className="auth-fields">
             <AuthField
               label="Key"
               placeholder="e.g. X-Api-Key"
@@ -599,31 +628,18 @@ function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
               value={request.auth.value ?? ""}
               onChange={(v) => setAuth({ value: v })}
             />
-            <div className="auth-grid-row">
-              <span className="auth-field">Add to</span>
-              <div className="auth-cell">
-                <select
-                  className="auth-select"
-                  value={request.auth.addTo ?? "header"}
-                  onChange={(e) =>
-                    setAuth({ addTo: e.target.value as "header" | "query" })
-                  }
-                >
-                  <option value="header">Header</option>
-                  <option value="query">Query params</option>
-                </select>
-              </div>
-            </div>
-          </>
-        )}
-
-        {mode === "none" && (
-          <div className="auth-grid-row">
-            <span className="auth-field" />
-            <div className="auth-cell auth-cell-static">
-              <span className="auth-note">
-                No Authorization header will be sent.
-              </span>
+            <div className="auth-field-row">
+              <span className="auth-field-label">Add to</span>
+              <select
+                className="auth-select auth-field-select"
+                value={request.auth.addTo ?? "header"}
+                onChange={(e) =>
+                  setAuth({ addTo: e.target.value as "header" | "query" })
+                }
+              >
+                <option value="header">Header</option>
+                <option value="query">Query params</option>
+              </select>
             </div>
           </div>
         )}
@@ -646,18 +662,16 @@ function AuthField({
   type?: string;
 }): React.JSX.Element {
   return (
-    <div className="auth-grid-row">
-      <span className="auth-field">{label}</span>
-      <div className="auth-cell">
-        <input
-          className="auth-input code-font"
-          type={type}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          spellCheck={false}
-        />
-      </div>
+    <div className="auth-field-row">
+      <span className="auth-field-label">{label}</span>
+      <input
+        className="auth-field-input code-font"
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        spellCheck={false}
+      />
     </div>
   );
 }

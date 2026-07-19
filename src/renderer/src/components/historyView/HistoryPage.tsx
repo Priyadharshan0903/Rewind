@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, Check } from 'lucide-react'
+import { ChevronDown, Check, FileText, Inbox } from 'lucide-react'
 import type { HttpMethod, Run } from '@shared/types'
 import { useApp } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
@@ -168,7 +168,7 @@ function Snapshot({ run }: { run: Run }): React.JSX.Element {
           </div>
           <div className="snap-body">
             <div className="micro-label">BODY</div>
-            <CodeView text={run.request.bodyText || '— no body —'} />
+            {run.request.bodyText ? <CodeView text={run.request.bodyText} /> : <EmptyBody kind="request" method={run.request.method} />}
           </div>
         </div>
         <div className="snap-col">
@@ -194,11 +194,52 @@ function Snapshot({ run }: { run: Run }): React.JSX.Element {
           </div>
           <div className="snap-body">
             <div className="micro-label">BODY</div>
-            <CodeView text={run.response ? prettyJson(run.response.bodyText) || '— no body —' : run.error || '— no body —'} />
+            {run.response ? (
+              prettyJson(run.response.bodyText) ? (
+                <CodeView text={prettyJson(run.response.bodyText)} />
+              ) : (
+                <EmptyBody kind="response" status={run.response.status} />
+              )
+            ) : (
+              <CodeView text={run.error || '— no body —'} />
+            )}
           </div>
         </div>
       </div>
     </>
+  )
+}
+
+/**
+ * Empty-body placeholder for the snapshot BODY panels. Reads context-aware
+ * copy — a bodyless request (GET/DELETE) vs. an empty response (204, HEAD).
+ */
+function EmptyBody({
+  kind,
+  method,
+  status
+}: {
+  kind: 'request' | 'response'
+  method?: string
+  status?: number
+}): React.JSX.Element {
+  const isReq = kind === 'request'
+  const title = isReq ? 'No request body' : 'No response body'
+  const sub = isReq
+    ? method && ['GET', 'HEAD', 'DELETE', 'QUERY'].includes(method)
+      ? `${method} requests are typically sent without a payload.`
+      : 'This request was sent without a payload.'
+    : status === 204 || status === 205
+      ? `${status} — the server intentionally returned no content.`
+      : 'The server returned an empty body.'
+  return (
+    <div className="body-empty">
+      <span className="body-empty-icon">
+        {isReq ? <FileText size={19} strokeWidth={1.6} /> : <Inbox size={19} strokeWidth={1.6} />}
+      </span>
+      <span className="body-empty-title">{title}</span>
+      <span className="body-empty-sub">{sub}</span>
+    </div>
   )
 }
 
