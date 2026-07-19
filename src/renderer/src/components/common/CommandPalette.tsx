@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import type {
   Collection,
   HttpMethod,
@@ -300,7 +301,7 @@ export function CommandPalette(): React.JSX.Element {
                 >
                   {it.kind === "command" && (
                     <>
-                      <span className="palette-cmd-ic">▸</span>
+                      <ChevronRight className="palette-cmd-ic" size={14} strokeWidth={2} />
                       <span className="palette-label">{it.label}</span>
                       {it.hint && (
                         <span className="palette-hint">{it.hint}</span>

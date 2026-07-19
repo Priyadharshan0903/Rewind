@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Ellipsis,
+  ChevronDown,
+  ChevronRight,
+  Download,
+} from "lucide-react";
 import type {
   Collection,
   FolderNode,
@@ -171,7 +178,7 @@ export function Sidebar(): React.JSX.Element {
           title="New collection"
           onClick={addCollection}
         >
-          +
+          <Plus size={16} strokeWidth={2.2} />
         </button>
       </div>
       <div className="sb-tree">
@@ -269,7 +276,7 @@ function ImportOpenApiButton(): React.JSX.Element {
   const importOpenApi = useImportOpenApi();
   return (
     <button className="import-btn" onClick={() => void importOpenApi()}>
-      ⤓ Import OpenAPI
+      <Download size={14} strokeWidth={2} /> Import OpenAPI
     </button>
   );
 }
@@ -278,7 +285,7 @@ function ImportPostmanButton(): React.JSX.Element {
   const importPostman = useImportPostman();
   return (
     <button className="import-btn" onClick={() => void importPostman()}>
-      ⤓ Import from Postman
+      <Download size={14} strokeWidth={2} /> Import from Postman
     </button>
   );
 }
@@ -381,7 +388,11 @@ function CollectionBlock({
         onClick={() => setOpen((v) => !v)}
         onContextMenu={(e) => onContext(e, menu)}
       >
-        <span className="tree-caret">{open ? "▾" : "▸"}</span>
+        {open ? (
+          <ChevronDown className="tree-caret" size={14} strokeWidth={2.2} />
+        ) : (
+          <ChevronRight className="tree-caret" size={14} strokeWidth={2.2} />
+        )}
         <EditableLabel
           id={collection.id}
           value={collection.name}
@@ -401,7 +412,7 @@ function CollectionBlock({
               useApp.getState().addRequest(collection.id, null);
             }}
           >
-            +
+            <Plus size={16} strokeWidth={2.2} />
           </button>
           <button
             className="row-action"
@@ -411,7 +422,7 @@ function CollectionBlock({
               onContext(e, menu);
             }}
           >
-            ⋯
+            <Ellipsis size={16} strokeWidth={2.2} />
           </button>
         </span>
       </div>
@@ -500,7 +511,11 @@ function FolderRow({
         onClick={() => setOpen((v) => !v)}
         onContextMenu={(e) => onContext(e, menu)}
       >
-        <span className="tree-caret">{open ? "▾" : "▸"}</span>
+        {open ? (
+          <ChevronDown className="tree-caret" size={14} strokeWidth={2.2} />
+        ) : (
+          <ChevronRight className="tree-caret" size={14} strokeWidth={2.2} />
+        )}
         <EditableLabel
           id={folder.id}
           value={folder.name}
@@ -518,7 +533,7 @@ function FolderRow({
               useApp.getState().addRequest(collectionId, folder.id);
             }}
           >
-            +
+            <Plus size={16} strokeWidth={2.2} />
           </button>
           <button
             className="row-action"
@@ -528,7 +543,7 @@ function FolderRow({
               onContext(e, menu);
             }}
           >
-            ⋯
+            <Ellipsis size={16} strokeWidth={2.2} />
           </button>
         </span>
       </div>
@@ -639,7 +654,7 @@ function RequestRow({
             onContext(e, menu);
           }}
         >
-          ⋯
+          <Ellipsis size={16} strokeWidth={2.2} />
         </button>
       </span>
     </div>

@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import type { KV } from '@shared/types'
 import { newId } from '@shared/id'
 import { useApp } from '@/stores/app'
@@ -22,7 +23,7 @@ export function CollectionVarsModal(): React.JSX.Element | null {
         <div className="modal-title-row">
           <span className="modal-title">Collection variables — {collection.name}</span>
           <button className="icon-btn" onClick={() => closeOverlays()}>
-            ✕
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
         <div className="var-grid">
@@ -54,7 +55,7 @@ export function CollectionVarsModal(): React.JSX.Element | null {
                 title="Remove variable"
                 onClick={() => updateCollectionVariables(collection.id, variables.filter((x) => x.id !== v.id))}
               >
-                ✕
+                <X size={14} strokeWidth={2} />
               </button>
             </div>
           ))}

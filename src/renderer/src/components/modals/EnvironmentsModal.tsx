@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
 import type { Environment, KV } from '@shared/types'
 import { newId } from '@shared/id'
 import { useApp } from '@/stores/app'
@@ -38,7 +39,7 @@ export function EnvironmentsModal(): React.JSX.Element {
         <div className="modal-title-row">
           <span className="modal-title">Environments &amp; variables</span>
           <button className="icon-btn" onClick={() => closeOverlays()}>
-            ✕
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
         <div className="env-body">
@@ -131,7 +132,7 @@ export function EnvironmentsModal(): React.JSX.Element {
                       title="Remove variable"
                       onClick={() => patchEnv({ variables: env.variables.filter((x) => x.id !== v.id) })}
                     >
-                      ✕
+                      <X size={14} strokeWidth={2} />
                     </button>
                   </div>
                 ))}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import { useApp } from "@/stores/app";
 import { useRuns } from "@/stores/runs";
 import { useUi } from "@/stores/ui";
@@ -34,7 +35,7 @@ export function NewProfileModal(): React.JSX.Element {
         <div className="modal-title-row">
           <span className="modal-title">New profile</span>
           <button className="icon-btn" onClick={() => closeOverlays()}>
-            ✕
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
         <span className="move-note">

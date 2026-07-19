@@ -1,3 +1,4 @@
+import { Check, X, Plus, Cloud, Download, Upload } from "lucide-react";
 import { useApp } from "@/stores/app";
 import { useRuns } from "@/stores/runs";
 import { useUi } from "@/stores/ui";
@@ -86,7 +87,7 @@ export function ProfileMenu(): React.JSX.Element {
             <span className="avatar">{p.name[0]?.toUpperCase() ?? "?"}</span>
             <span className="profile-row-name">{p.name}</span>
             {p.id === activeProfileId ? (
-              <span className="menu-check">✓</span>
+              <Check className="menu-check" size={13} strokeWidth={2.5} />
             ) : (
               <button
                 className="row-action profile-delete"
@@ -96,13 +97,13 @@ export function ProfileMenu(): React.JSX.Element {
                   void removeProfile(p.id, p.name);
                 }}
               >
-                ✕
+                <X size={13} strokeWidth={2.2} />
               </button>
             )}
           </div>
         ))}
         <button className="menu-item menu-accent" onClick={openNewProfile}>
-          + New profile…
+          <Plus size={14} strokeWidth={2} /> New profile…
         </button>
         <div className="menu-sep" />
         <button className="menu-item" onClick={openPrefs}>
@@ -121,14 +122,14 @@ export function ProfileMenu(): React.JSX.Element {
             );
           }}
         >
-          ☁ Sign in to enable team sync
+          <Cloud size={14} strokeWidth={2} /> Sign in to enable team sync
         </button>
         <div className="menu-sep" />
         <button className="menu-item" onClick={() => void doExport()}>
-          ⤓ Export workspace…
+          <Download size={14} strokeWidth={2} /> Export workspace…
         </button>
         <button className="menu-item" onClick={() => void doImport()}>
-          ⤒ Import workspace…
+          <Upload size={14} strokeWidth={2} /> Import workspace…
         </button>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, X, Plus, ArrowRight } from "lucide-react";
 import type {
   Capture,
   FormField,
@@ -324,7 +324,7 @@ function FormGrid({ request }: { request: RequestNode }): React.JSX.Element {
             title="Remove field"
             onClick={() => commit(fields.filter((x) => x.id !== f.id))}
           >
-            ✕
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
       ))}
@@ -337,7 +337,7 @@ function FormGrid({ request }: { request: RequestNode }): React.JSX.Element {
           ])
         }
       >
-        + Add field
+        <Plus size={13} strokeWidth={2} /> Add field
       </button>
     </div>
   );
@@ -472,7 +472,7 @@ function KvTableRow({
           title="Remove"
           onClick={() => remove(row.id)}
         >
-          ✕
+          <X size={14} strokeWidth={2} />
         </button>
       )}
       {suggest.dropdown}
@@ -773,7 +773,9 @@ function CapturesTable({
                   onChange={(e) => patch(c.id, { path: e.target.value })}
                   spellCheck={false}
                 />
-                <span className="capture-arrow">→</span>
+                <span className="capture-arrow">
+                  <ArrowRight size={14} strokeWidth={2} />
+                </span>
                 <input
                   className="capture-var code-font"
                   placeholder="variable"
@@ -791,7 +793,7 @@ function CapturesTable({
                   title="Remove"
                   onClick={() => commit(captures.filter((x) => x.id !== c.id))}
                 >
-                  ✕
+                  <X size={14} strokeWidth={2} />
                 </button>
               </div>
             );
@@ -799,7 +801,7 @@ function CapturesTable({
         </div>
       )}
       <button className="link-btn add-header" onClick={add}>
-        + Add capture
+        <Plus size={13} strokeWidth={2} /> Add capture
       </button>
     </div>
   );

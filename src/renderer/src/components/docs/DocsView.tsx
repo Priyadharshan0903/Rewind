@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Download } from "lucide-react";
 import type { Run } from "@shared/types";
 import { useApp } from "@/stores/app";
 import { useUi } from "@/stores/ui";
@@ -174,7 +175,7 @@ function DocsContent({
           </div>
         </div>
         <button className="docs-export" onClick={exportHtml}>
-          ⤓ Export HTML
+          <Download size={14} strokeWidth={2} /> Export HTML
         </button>
       </header>
 

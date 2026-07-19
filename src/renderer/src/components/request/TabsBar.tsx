@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { X, Plus } from 'lucide-react'
 import { useApp } from '@/stores/app'
 import { findRequest } from '@/lib/tree'
 
@@ -45,7 +46,7 @@ export function TabsBar(): React.JSX.Element | null {
                 useApp.getState().closeTab(tab.requestId)
               }}
             >
-              ✕
+              <X size={13} strokeWidth={2.2} />
             </button>
           </div>
         )
@@ -59,7 +60,7 @@ export function TabsBar(): React.JSX.Element | null {
           if (collectionId) state.addRequest(collectionId, null)
         }}
       >
-        +
+        <Plus size={15} strokeWidth={2.2} />
       </button>
     </div>
   )

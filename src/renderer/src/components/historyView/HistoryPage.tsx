@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ChevronDown, Check } from 'lucide-react'
 import type { HttpMethod, Run } from '@shared/types'
 import { useApp } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
@@ -68,7 +69,8 @@ export function HistoryPage(): React.JSX.Element {
               className={filterMethod !== 'all' ? 'filter-chip filter-active' : 'filter-chip'}
               onClick={() => setMethodOpen((v) => !v)}
             >
-              {filterMethod === 'all' ? 'method ▾' : `${filterMethod} ▾`}
+              {filterMethod === 'all' ? 'method' : filterMethod}
+              <ChevronDown size={12} strokeWidth={2} />
             </button>
             {methodOpen && (
               <>
@@ -84,7 +86,7 @@ export function HistoryPage(): React.JSX.Element {
                       }}
                     >
                       {m === 'all' ? 'Any method' : m}
-                      {m === filterMethod && <span className="menu-check">✓</span>}
+                      {m === filterMethod && <Check className="menu-check" size={13} strokeWidth={2.5} />}
                     </button>
                   ))}
                 </div>

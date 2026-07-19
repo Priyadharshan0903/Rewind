@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { ChevronDown, Check } from 'lucide-react'
 import type { Collection, HttpMethod, RequestNode } from '@shared/types'
 import { interpolate, VAR_RE } from '@shared/interpolate'
 import { parseCurl, type ParsedCurl } from '@shared/curlParse'
@@ -125,7 +126,7 @@ function MethodSelect({
     <div className="method-wrap">
       <button className={`method-btn method-${method.toLowerCase()}`} onClick={() => setOpen((v) => !v)}>
         {method}
-        <span className="caret">▾</span>
+        <ChevronDown className="caret" size={13} strokeWidth={2} />
       </button>
       {open && (
         <>
@@ -141,7 +142,7 @@ function MethodSelect({
                 }}
               >
                 <span className={`method method-${m.toLowerCase()}`}>{m}</span>
-                {m === method && <span className="menu-check">✓</span>}
+                {m === method && <Check className="menu-check" size={13} strokeWidth={2.5} />}
               </button>
             ))}
           </div>

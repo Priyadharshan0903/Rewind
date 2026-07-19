@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PanelLeft, PanelBottom, PanelRight, ChevronDown, Check, Settings, Share2 } from 'lucide-react'
 import { useApp, useActiveEnv } from '@/stores/app'
 import { useUi } from '@/stores/ui'
 
@@ -26,26 +27,10 @@ export function Titlebar(): React.JSX.Element {
       {view === 'runbook' && <LayoutToggles />}
       <EnvPill />
       <button className="btn-accent no-drag" onClick={toggleShare}>
-        ⇪ Share
+        <Share2 size={13} strokeWidth={2} /> Share
       </button>
       <ProfileChip onClick={toggleProfile} />
     </div>
-  )
-}
-
-/** Panel icon: outer frame + the toggled region, filled when the panel is visible. */
-function PanelIcon({ side, on }: { side: 'left' | 'bottom' | 'right'; on: boolean }): React.JSX.Element {
-  const region =
-    side === 'left'
-      ? { x: 3, y: 4.5, width: 3.5, height: 7 }
-      : side === 'right'
-        ? { x: 9.5, y: 4.5, width: 3.5, height: 7 }
-        : { x: 3, y: 8, width: 10, height: 3.5 }
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16">
-      <rect x="1.5" y="3" width="13" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.2" />
-      <rect {...region} rx="0.8" fill="currentColor" opacity={on ? 0.85 : 0.2} />
-    </svg>
   )
 }
 
@@ -55,6 +40,8 @@ function LayoutToggles(): React.JSX.Element {
   const responsePaneOpen = useApp((s) => s.settings.responsePaneOpen)
   const historyPanelOpen = useApp((s) => s.settings.historyPanelOpen)
   const patchSettings = useApp((s) => s.patchSettings)
+  // Active (panel visible) reads darker; hidden reads muted.
+  const tint = (on: boolean): string => (on ? 'var(--text)' : 'var(--text3)')
   return (
     <div className="layout-toggles no-drag">
       <button
@@ -62,21 +49,21 @@ function LayoutToggles(): React.JSX.Element {
         title={`${sidebarOpen ? 'Hide' : 'Show'} sidebar (⌘B)`}
         onClick={() => patchSettings({ sidebarOpen: !sidebarOpen })}
       >
-        <PanelIcon side="left" on={sidebarOpen} />
+        <PanelLeft size={16} strokeWidth={1.8} color={tint(sidebarOpen)} />
       </button>
       <button
         className="icon-btn"
         title={`${responsePaneOpen ? 'Hide' : 'Show'} response pane (⌘J)`}
         onClick={() => patchSettings({ responsePaneOpen: !responsePaneOpen })}
       >
-        <PanelIcon side="bottom" on={responsePaneOpen} />
+        <PanelBottom size={16} strokeWidth={1.8} color={tint(responsePaneOpen)} />
       </button>
       <button
         className="icon-btn"
         title={`${historyPanelOpen ? 'Hide' : 'Show'} history panel (⌘⌥B)`}
         onClick={() => patchSettings({ historyPanelOpen: !historyPanelOpen })}
       >
-        <PanelIcon side="right" on={historyPanelOpen} />
+        <PanelRight size={16} strokeWidth={1.8} color={tint(historyPanelOpen)} />
       </button>
     </div>
   )
@@ -107,7 +94,7 @@ function EnvPill(): React.JSX.Element {
       <button className="env-pill" onClick={() => setOpen((v) => !v)}>
         <span className={`dot dot-${env?.dotColor ?? 'warn'}`} />
         {env?.name ?? 'No env'}
-        <span className="caret">▾</span>
+        <ChevronDown className="caret" size={13} strokeWidth={2} />
       </button>
       {open && (
         <>
@@ -124,7 +111,7 @@ function EnvPill(): React.JSX.Element {
               >
                 <span className={`dot dot-${e.dotColor}`} />
                 {e.name}
-                {e.id === env?.id && <span className="menu-check">✓</span>}
+                {e.id === env?.id && <Check className="menu-check" size={13} strokeWidth={2.5} />}
               </button>
             ))}
             <div className="menu-sep" />
@@ -135,7 +122,7 @@ function EnvPill(): React.JSX.Element {
                 openEnvEditor()
               }}
             >
-              ⚙ Edit variables…<span className="menu-kbd">⌘ E</span>
+              <Settings size={13} strokeWidth={2} /> Edit variables…<span className="menu-kbd">⌘ E</span>
             </button>
           </div>
         </>

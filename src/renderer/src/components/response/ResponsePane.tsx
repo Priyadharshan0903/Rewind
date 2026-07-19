@@ -3,7 +3,14 @@ import { useApp, useMergedVars } from "@/stores/app";
 import { useRuns } from "@/stores/runs";
 import { useUi } from "@/stores/ui";
 import { useEffect, useMemo, useRef } from "react";
-import { Search, PanelRight, Bookmark, RotateCw } from "lucide-react";
+import {
+  Search,
+  PanelRight,
+  Bookmark,
+  RotateCw,
+  Check,
+  X,
+} from "lucide-react";
 import { fmtBytes, fmtMs, prettyJson } from "@/lib/format";
 import { resolveForCodegen } from "@/lib/resolve";
 import { charWidth, findMatches, normIndex } from "@/lib/find";
@@ -113,11 +120,19 @@ export function ResponsePane({
                 .join("\n")
             }
           >
-            {run.script.error
-              ? "script error"
-              : failedAsserts
-                ? `✗ ${failedAsserts} assert${failedAsserts > 1 ? "s" : ""} failed`
-                : `✓ ${run.script.assertions.length || "script"} ok`}
+            {run.script.error ? (
+              "script error"
+            ) : failedAsserts ? (
+              <>
+                <X size={12} strokeWidth={2.6} /> {failedAsserts} assert
+                {failedAsserts > 1 ? "s" : ""} failed
+              </>
+            ) : (
+              <>
+                <Check size={12} strokeWidth={2.6} />{" "}
+                {run.script.assertions.length || "script"} ok
+              </>
+            )}
           </span>
         )}
         {run?.error && !sending && (

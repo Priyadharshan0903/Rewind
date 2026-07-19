@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X, Download, Upload } from "lucide-react";
 import { useApp } from "@/stores/app";
 import { useRuns } from "@/stores/runs";
 import { useUi } from "@/stores/ui";
@@ -55,7 +56,7 @@ export function ShareModal(): React.JSX.Element {
         <div className="modal-title-row">
           <span className="modal-title">Share workspace</span>
           <button className="icon-btn" onClick={toggleShare}>
-            ✕
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
         <div className="invite-row">
@@ -94,14 +95,14 @@ export function ShareModal(): React.JSX.Element {
               disabled={busy}
               onClick={() => void doExport()}
             >
-              ⤓ Export .rewind
+              <Download size={14} strokeWidth={2} /> Export .rewind
             </button>
             <button
               className="ghost-btn"
               disabled={busy}
               onClick={() => void doImport()}
             >
-              ⤒ Import from file
+              <Upload size={14} strokeWidth={2} /> Import from file
             </button>
             <label className="include-history">
               <input

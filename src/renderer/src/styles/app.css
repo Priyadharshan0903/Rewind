@@ -667,8 +667,7 @@ textarea {
 }
 
 .tree-caret {
-  color: var(--text2);
-  font-size: 12px;
+  color: var(--text3);
   flex: none;
 }
 
@@ -3406,4 +3405,33 @@ textarea {
 .copy-icon-btn:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* ---- Lucide icon alignment: buttons/labels that now pair an icon with text ---- */
+.link-btn,
+.docs-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.hp-scope,
+.assert-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.capture-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text3);
+}
+.caret {
+  flex: none;
+  color: var(--text3);
 }

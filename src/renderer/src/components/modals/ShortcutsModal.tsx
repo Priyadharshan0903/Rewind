@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import { useUi } from '@/stores/ui'
 import { Overlay } from '@/components/common/Overlay'
 
@@ -26,7 +27,7 @@ export function ShortcutsModal(): React.JSX.Element {
         <div className="modal-title-row">
           <span className="modal-title">Keyboard shortcuts</span>
           <button className="icon-btn" onClick={() => closeOverlays()}>
-            ✕
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
         <div className="shortcut-list">

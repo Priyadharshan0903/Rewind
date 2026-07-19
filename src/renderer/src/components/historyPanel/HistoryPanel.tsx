@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { useRuns } from '@/stores/runs'
 import { fmtBytes, fmtMs, runTime } from '@/lib/format'
 import { jsonDiff, DIFF_GUTTER } from '@/lib/jsonDiff'
@@ -21,7 +22,9 @@ export function HistoryPanel(): React.JSX.Element {
     <div className="history-panel">
       <div className="hp-header">
         <span className="micro-label">HISTORY</span>
-        <span className="hp-scope">this request ▾</span>
+        <span className="hp-scope">
+          this request <ChevronDown size={12} strokeWidth={2} />
+        </span>
       </div>
       <div className="hp-runs">
         {panelRuns.slice(0, 8).map((run, idx) => {

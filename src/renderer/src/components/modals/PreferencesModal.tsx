@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import type { AccentId } from '@shared/types'
 import { ACCENTS } from '@shared/types'
 import { useApp } from '@/stores/app'
@@ -21,7 +22,7 @@ export function PreferencesModal(): React.JSX.Element {
         <div className="modal-title-row">
           <span className="modal-title">Preferences</span>
           <button className="icon-btn" onClick={() => closeOverlays()}>
-            ✕
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
         <div className="pref-row">

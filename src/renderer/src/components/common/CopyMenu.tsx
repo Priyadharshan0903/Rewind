@@ -11,7 +11,7 @@ const FORMATS: { key: string; label: string; build: (req: RunRequest) => string 
 ]
 
 
-/** "Copy as ▾" dropdown — cURL / Node.js / Python snippets for a resolved request. */
+/** "Copy as" dropdown — cURL / Node.js / Python snippets for a resolved request. */
 export function CopyMenu({
   req,
   disabled,
@@ -19,7 +19,7 @@ export function CopyMenu({
 }: {
   req: RunRequest | null
   disabled?: boolean
-  /** Icon-only trigger (⧉), for tight spots like the URL row. */
+  /** Icon-only trigger (no label), for tight spots like the URL row. */
   compact?: boolean
 }): React.JSX.Element {
   const [open, setOpen] = useState(false)
