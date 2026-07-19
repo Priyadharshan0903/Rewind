@@ -301,6 +301,79 @@ textarea {
   background: color-mix(in oklab, var(--err) 9%, transparent);
 }
 
+/* ---------- themed Select (custom dropdown) ---------- */
+.select {
+  position: relative;
+  display: inline-block;
+  min-width: 0;
+}
+.select-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+}
+.select-trigger:hover {
+  border-color: var(--text3);
+}
+.select-trigger:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.select-trigger.select-open,
+.select-trigger:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 18%, transparent);
+  outline: none;
+}
+.select-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select-placeholder {
+  color: var(--text3);
+}
+.select-caret {
+  flex: none;
+  color: var(--text3);
+  transition: transform 0.12s ease;
+}
+.select-open .select-caret {
+  transform: rotate(180deg);
+}
+/* popup: reuse .menu chrome, but positioned via a portal (fixed) so it's
+   never clipped by a scrolling ancestor. left/top/bottom set inline. */
+.select-menu {
+  position: fixed;
+  right: auto;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 60;
+}
+.select-item-active {
+  background: var(--sunken);
+}
+.select-hint {
+  margin-left: auto;
+  padding-left: 10px;
+  font-size: 11px;
+  color: var(--text3);
+}
+.select-hint + .menu-check {
+  margin-left: 8px;
+}
+
 .ctx-overlay {
   position: fixed;
   inset: 0;
@@ -1521,14 +1594,6 @@ textarea {
 
 /* ---------- auth tab ---------- */
 
-.auth-tab {
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.auth-mode,
 .role-select {
   height: 30px;
   padding: 0 8px;
@@ -3365,38 +3430,9 @@ textarea {
   font-weight: 500;
   color: var(--text2);
 }
-.auth-select-wrap {
-  position: relative;
+.auth-type-select {
   flex: 1;
   min-width: 0;
-}
-.auth-select {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 100%;
-  padding: 7px 30px 7px 10px;
-  font-size: 12px;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  outline: none;
-  cursor: pointer;
-}
-.auth-select:hover {
-  border-color: var(--border-strong, var(--text3));
-}
-.auth-select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 18%, transparent);
-}
-.auth-select-caret {
-  position: absolute;
-  top: 50%;
-  right: 9px;
-  transform: translateY(-50%);
-  color: var(--text3);
-  pointer-events: none;
 }
 .auth-helper {
   margin: 0;
@@ -3428,8 +3464,7 @@ textarea {
   font-weight: 500;
   color: var(--text2);
 }
-.auth-field-input,
-.auth-field-select {
+.auth-field-input {
   width: 100%;
   padding: 7px 10px;
   font-size: 12px;
@@ -3442,15 +3477,9 @@ textarea {
 .auth-field-input::placeholder {
   color: var(--text3);
 }
-.auth-field-input:focus,
-.auth-field-select:focus {
+.auth-field-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 18%, transparent);
-}
-.auth-field-select {
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
 }
 .auth-field-static {
   display: flex;

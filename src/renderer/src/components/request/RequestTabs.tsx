@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Search, X, Plus, ArrowRight, ChevronDown, ShieldOff } from "lucide-react";
+import { Search, X, Plus, ArrowRight, ShieldOff } from "lucide-react";
 import type {
   Capture,
   FormField,
@@ -17,6 +17,7 @@ import { CodeEditor } from "@/components/common/Code";
 import { useVarSuggest } from "@/components/common/VarSuggest";
 import { varHoverHandlers } from "@/components/common/VarPeek";
 import { FindBar } from "@/components/common/FindBar";
+import { Select } from "@/components/common/Select";
 
 const TABS: { key: RequestTab; label: string }[] = [
   { key: "params", label: "Params" },
@@ -541,20 +542,19 @@ function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
       <div className="auth-left">
         <label className="auth-type">
           <span className="auth-type-label">Auth Type</span>
-          <div className="auth-select-wrap">
-            <select
-              className="auth-select"
-              value={mode}
-              onChange={(e) => setAuth({ mode: e.target.value as typeof mode })}
-            >
-              <option value="inherit">Inherit auth from environment</option>
-              <option value="bearer">Bearer Token</option>
-              <option value="basic">Basic Auth</option>
-              <option value="apikey">API Key</option>
-              <option value="none">No Auth</option>
-            </select>
-            <ChevronDown className="auth-select-caret" size={14} strokeWidth={2} />
-          </div>
+          <Select
+            className="auth-type-select"
+            ariaLabel="Authorization type"
+            value={mode}
+            onChange={(m) => setAuth({ mode: m as typeof mode })}
+            options={[
+              { value: "inherit", label: "Inherit auth from environment" },
+              { value: "bearer", label: "Bearer Token" },
+              { value: "basic", label: "Basic Auth" },
+              { value: "apikey", label: "API Key" },
+              { value: "none", label: "No Auth" },
+            ]}
+          />
         </label>
         <p className="auth-helper">{helper[mode]}</p>
       </div>
@@ -630,16 +630,15 @@ function AuthTab({ request }: { request: RequestNode }): React.JSX.Element {
             />
             <div className="auth-field-row">
               <span className="auth-field-label">Add to</span>
-              <select
-                className="auth-select auth-field-select"
+              <Select
+                ariaLabel="Add API key to"
                 value={request.auth.addTo ?? "header"}
-                onChange={(e) =>
-                  setAuth({ addTo: e.target.value as "header" | "query" })
-                }
-              >
-                <option value="header">Header</option>
-                <option value="query">Query params</option>
-              </select>
+                onChange={(v) => setAuth({ addTo: v as "header" | "query" })}
+                options={[
+                  { value: "header", label: "Header" },
+                  { value: "query", label: "Query params" },
+                ]}
+              />
             </div>
           </div>
         )}
