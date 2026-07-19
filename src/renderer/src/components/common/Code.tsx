@@ -60,7 +60,9 @@ export function CodeView({
   if (plain) {
     return (
       <>
-        {!hideLargeNote && <div className="truncate-note">Large body — syntax highlighting off for speed</div>}
+        {!hideLargeNote && (
+          <div className="truncate-note">Large body — syntax highlighting off for speed</div>
+        )}
         <pre className="code-view">{text}</pre>
       </>
     )
@@ -90,7 +92,14 @@ interface EditorProps {
  * line-number gutter. Font metrics of the textarea and the pre must match
  * exactly (same class), or the caret drifts from the highlight.
  */
-export function CodeEditor({ value, onChange, language, placeholder, varSuggest, findable }: EditorProps): React.JSX.Element {
+export function CodeEditor({
+  value,
+  onChange,
+  language,
+  placeholder,
+  varSuggest,
+  findable
+}: EditorProps): React.JSX.Element {
   const taRef = useRef<HTMLTextAreaElement>(null)
   const hlRef = useRef<HTMLPreElement>(null)
   const gutterRef = useRef<HTMLDivElement>(null)
@@ -101,16 +110,21 @@ export function CodeEditor({ value, onChange, language, placeholder, varSuggest,
   const sync = (): void => {
     const ta = taRef.current
     if (!ta) return
-    if (hlRef.current) hlRef.current.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`
+    if (hlRef.current)
+      hlRef.current.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`
     if (gutterRef.current) gutterRef.current.style.transform = `translateY(${-ta.scrollTop}px)`
-    if (marksRef.current) marksRef.current.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`
+    if (marksRef.current)
+      marksRef.current.style.transform = `translate(${-ta.scrollLeft}px, ${-ta.scrollTop}px)`
   }
 
   useEffect(sync, [value])
 
   const find = useUi((s) => s.find)
   const findActive = !!findable && find.open && find.scope === 'request' && !!find.query
-  const matches = useMemo(() => (findActive ? findMatches(value, find.query) : []), [findActive, value, find.query])
+  const matches = useMemo(
+    () => (findActive ? findMatches(value, find.query) : []),
+    [findActive, value, find.query]
+  )
   const currentMatch = normIndex(find.idx, matches.length)
 
   useEffect(() => {
@@ -122,7 +136,6 @@ export function CodeEditor({ value, onChange, language, placeholder, varSuggest,
       left: Math.max(0, m.col * charWidth(ED_FONT) - ta.clientWidth / 2)
     })
     requestAnimationFrame(sync)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matches, currentMatch])
 
   const vars = useMergedVars()

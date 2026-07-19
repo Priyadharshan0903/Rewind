@@ -52,7 +52,9 @@ export function EnvironmentsModal(): React.JSX.Element {
               >
                 <span className={`dot dot-${e.dotColor}`} />
                 <span className="env-row-name">{e.name}</span>
-                {e.id === workspace?.activeEnvironmentId && <span className="env-active-tag">ACTIVE</span>}
+                {e.id === workspace?.activeEnvironmentId && (
+                  <span className="env-active-tag">ACTIVE</span>
+                )}
               </button>
             ))}
             <button className="link-btn env-add" onClick={() => setSelectedId(addEnvironment())}>
@@ -72,7 +74,9 @@ export function EnvironmentsModal(): React.JSX.Element {
                   {DOTS.map((d) => (
                     <button
                       key={d}
-                      className={env.dotColor === d ? 'env-dot-pick env-dot-active' : 'env-dot-pick'}
+                      className={
+                        env.dotColor === d ? 'env-dot-pick env-dot-active' : 'env-dot-pick'
+                      }
                       title={d}
                       onClick={() => patchEnv({ dotColor: d })}
                     >
@@ -130,7 +134,9 @@ export function EnvironmentsModal(): React.JSX.Element {
                     <button
                       className="icon-btn"
                       title="Remove variable"
-                      onClick={() => patchEnv({ variables: env.variables.filter((x) => x.id !== v.id) })}
+                      onClick={() =>
+                        patchEnv({ variables: env.variables.filter((x) => x.id !== v.id) })
+                      }
                     >
                       <X size={14} strokeWidth={2} />
                     </button>
@@ -139,7 +145,12 @@ export function EnvironmentsModal(): React.JSX.Element {
                 <button
                   className="link-btn add-header"
                   onClick={() =>
-                    patchEnv({ variables: [...env.variables, { id: newId(6), key: '', value: '', enabled: true }] })
+                    patchEnv({
+                      variables: [
+                        ...env.variables,
+                        { id: newId(6), key: '', value: '', enabled: true }
+                      ]
+                    })
                   }
                 >
                   + Add variable
@@ -150,7 +161,8 @@ export function EnvironmentsModal(): React.JSX.Element {
         </div>
         <div className="modal-footer-note">
           <span className="dot dot-ok" />
-          Reference variables as {'{{name}}'} in URLs, headers and bodies · stored locally in environments.json
+          Reference variables as {'{{name}}'} in URLs, headers and bodies · stored locally in
+          environments.json
         </div>
       </div>
     </Overlay>

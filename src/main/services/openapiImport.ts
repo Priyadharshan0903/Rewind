@@ -63,7 +63,8 @@ export function parseSpec(raw: string): OpenApiDoc {
   // YAML is a superset of JSON, so one parser covers both.
   const doc = parseYaml(raw) as OpenApiDoc
   if (!doc || typeof doc !== 'object') throw new Error('File is not valid JSON or YAML.')
-  if (!doc.openapi && !doc.swagger) throw new Error('Not an OpenAPI document (missing "openapi" or "swagger" field).')
+  if (!doc.openapi && !doc.swagger)
+    throw new Error('Not an OpenAPI document (missing "openapi" or "swagger" field).')
   if (!doc.paths || typeof doc.paths !== 'object') throw new Error('OpenAPI document has no paths.')
   return doc
 }
@@ -146,7 +147,12 @@ function pathToUrl(p: string): string {
   return p.replace(/\{([^}]+)\}/g, '{{$1}}')
 }
 
-function buildRequest(method: HttpMethod, path: string, op: Operation, doc: OpenApiDoc): RequestNode {
+function buildRequest(
+  method: HttpMethod,
+  path: string,
+  op: Operation,
+  doc: OpenApiDoc
+): RequestNode {
   const params = op.parameters ?? []
   const requiredQuery = params.filter((x) => x.in === 'query' && x.required && x.name)
   const query = requiredQuery.length

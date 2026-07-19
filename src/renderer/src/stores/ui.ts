@@ -97,7 +97,12 @@ export const useUi = create<UiState>((set, get) => ({
   openPrefs: () => set({ prefsOpen: true, profileOpen: false, shareOpen: false }),
   openShortcuts: () => set({ shortcutsOpen: true, profileOpen: false, shareOpen: false }),
   openEnvEditor: (selectId) =>
-    set({ envEditorOpen: true, envEditorSelectId: selectId ?? null, profileOpen: false, shareOpen: false }),
+    set({
+      envEditorOpen: true,
+      envEditorSelectId: selectId ?? null,
+      profileOpen: false,
+      shareOpen: false
+    }),
   openCollectionVars: (collectionId) =>
     set({ collectionVarsId: collectionId, profileOpen: false, shareOpen: false }),
   openNewProfile: () => set({ newProfileOpen: true, profileOpen: false, shareOpen: false }),

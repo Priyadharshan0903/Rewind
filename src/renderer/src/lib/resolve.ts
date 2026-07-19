@@ -17,9 +17,13 @@ export function resolveForCodegen(request: RequestNode, vars: Record<string, str
   }
   const hasAuth = headers.some(([k]) => k.toLowerCase() === 'authorization')
   if (!hasAuth) {
-    if (request.auth.mode === 'inherit' && vars.token) headers.unshift(['Authorization', `Bearer ${vars.token}`])
+    if (request.auth.mode === 'inherit' && vars.token)
+      headers.unshift(['Authorization', `Bearer ${vars.token}`])
     else if (request.auth.mode === 'bearer' && request.auth.token) {
-      headers.unshift(['Authorization', `Bearer ${interpolate(request.auth.token, vars, opts).text}`])
+      headers.unshift([
+        'Authorization',
+        `Bearer ${interpolate(request.auth.token, vars, opts).text}`
+      ])
     } else if (request.auth.mode === 'basic') {
       const user = interpolate(request.auth.username ?? '', vars, opts).text
       const pass = interpolate(request.auth.password ?? '', vars, opts).text

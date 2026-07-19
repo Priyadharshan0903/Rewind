@@ -36,14 +36,13 @@ export async function initProfiles(): Promise<void> {
     await fs.mkdir(dir, { recursive: true })
 
     // migrate legacy root-level workspace data into the first profile
-    let name = 'Default'
     for (const entry of ['workspace.json', 'environments.json', 'collections', 'runs']) {
       const from = path.join(dataDir(), entry)
       if (await exists(from)) await fs.rename(from, path.join(dir, entry))
     }
     const ws = await readJson<Workspace>(path.join(dir, 'workspace.json'))
-    if (ws?.name) name = ws.name
-    else name = 'Payments API' // fresh install: first boot seeds the demo workspace
+    // fresh install (no migrated workspace): first boot seeds the demo workspace
+    const name = ws?.name ?? 'Payments API'
 
     reg = { activeId: id, profiles: [{ id, name, createdAt: Date.now() }] }
     await writeRegistry(reg)

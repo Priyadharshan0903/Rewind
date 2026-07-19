@@ -29,7 +29,8 @@ export function RunbookView(): React.JSX.Element {
 
   // Sending with the response pane hidden would look like nothing happened — reopen it.
   useEffect(() => {
-    if (sending && !useApp.getState().settings.responsePaneOpen) patchSettings({ responsePaneOpen: true })
+    if (sending && !useApp.getState().settings.responsePaneOpen)
+      patchSettings({ responsePaneOpen: true })
   }, [sending, patchSettings])
 
   // Drag writes the CSS variable straight to the DOM — re-rendering the whole
@@ -47,7 +48,10 @@ export function RunbookView(): React.JSX.Element {
     let latest = startW
     let frame = 0
     const onMove = (ev: PointerEvent): void => {
-      latest = Math.max(170, Math.min(startW + (ev.clientX - startX), Math.round(window.innerWidth * 0.45)))
+      latest = Math.max(
+        170,
+        Math.min(startW + (ev.clientX - startX), Math.round(window.innerWidth * 0.45))
+      )
       // Coalesce pointermove bursts to one layout per frame.
       if (!frame) {
         frame = requestAnimationFrame(() => {
@@ -72,7 +76,11 @@ export function RunbookView(): React.JSX.Element {
   }
 
   return (
-    <div ref={rootRef} className="runbook" style={{ '--sidebar-w': `${savedWidth}px` } as React.CSSProperties}>
+    <div
+      ref={rootRef}
+      className="runbook"
+      style={{ '--sidebar-w': `${savedWidth}px` } as React.CSSProperties}
+    >
       {sidebarOpen && (
         <>
           <Sidebar />

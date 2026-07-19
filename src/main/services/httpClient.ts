@@ -12,10 +12,17 @@ export interface HttpResult {
   durationMs: number
 }
 
-export async function sendHttp(sendId: string, req: RunRequest, bodyLimitBytes: number): Promise<HttpResult> {
+export async function sendHttp(
+  sendId: string,
+  req: RunRequest,
+  bodyLimitBytes: number
+): Promise<HttpResult> {
   const controller = new AbortController()
   inflight.set(sendId, controller)
-  const timer = setTimeout(() => controller.abort(new Error('Request timed out (30s)')), DEFAULT_TIMEOUT_MS)
+  const timer = setTimeout(
+    () => controller.abort(new Error('Request timed out (30s)')),
+    DEFAULT_TIMEOUT_MS
+  )
   const started = performance.now()
   try {
     const headers = new Headers()

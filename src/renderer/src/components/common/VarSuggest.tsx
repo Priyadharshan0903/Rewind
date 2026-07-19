@@ -93,7 +93,8 @@ export function useVarSuggest(opts: Options): {
     let x: number
     let y: number
     if (opts.mode === 'input') {
-      const inner = (opts.padLeft ?? 12) + measureText(el.value.slice(0, start), opts.font) - el.scrollLeft
+      const inner =
+        (opts.padLeft ?? 12) + measureText(el.value.slice(0, start), opts.font) - el.scrollLeft
       x = rect.left + Math.max(0, Math.min(inner, rect.width - 40))
       y = rect.bottom + 4
     } else {
@@ -162,7 +163,9 @@ export function useVarSuggest(opts: Options): {
             onMouseEnter={() => setActive(i)}
           >
             <span className="var-item-name code-font">{`{{${it.name}}}`}</span>
-            <span className="var-item-value">{it.dynamic ? it.value : truncate(it.value, 30) || '(empty)'}</span>
+            <span className="var-item-value">
+              {it.dynamic ? it.value : truncate(it.value, 30) || '(empty)'}
+            </span>
           </button>
         ))}
       </div>

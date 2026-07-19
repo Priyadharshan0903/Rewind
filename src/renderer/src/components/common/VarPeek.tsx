@@ -118,7 +118,9 @@ function Card({ peek }: { peek: Peek }): React.JSX.Element {
   const name = peek.name
   const dynamic = name.startsWith('$')
   const envVar = env?.variables.find((v) => v.key === name && v.enabled)
-  const colVar = !envVar ? collection?.variables?.find((v) => v.key === name && v.enabled) : undefined
+  const colVar = !envVar
+    ? collection?.variables?.find((v) => v.key === name && v.enabled)
+    : undefined
 
   const scope = dynamic
     ? 'Dynamic'
@@ -139,7 +141,12 @@ function Card({ peek }: { peek: Peek }): React.JSX.Element {
       updateEnvironments(
         environments.map((e) =>
           e.id === env.id
-            ? { ...e, variables: e.variables.map((v) => (v.key === name && v.enabled ? { ...v, value: draft } : v)) }
+            ? {
+                ...e,
+                variables: e.variables.map((v) =>
+                  v.key === name && v.enabled ? { ...v, value: draft } : v
+                )
+              }
             : e
         )
       )
@@ -147,13 +154,23 @@ function Card({ peek }: { peek: Peek }): React.JSX.Element {
     } else if (colVar && collection) {
       updateCollectionVariables(
         collection.id,
-        (collection.variables ?? []).map((v) => (v.key === name && v.enabled ? { ...v, value: draft } : v))
+        (collection.variables ?? []).map((v) =>
+          v.key === name && v.enabled ? { ...v, value: draft } : v
+        )
       )
       toast(`{{${name}}} updated in ${collection.name}`)
     } else if (env) {
       updateEnvironments(
         environments.map((e) =>
-          e.id === env.id ? { ...e, variables: [...e.variables, { id: newId(6), key: name, value: draft, enabled: true }] } : e
+          e.id === env.id
+            ? {
+                ...e,
+                variables: [
+                  ...e.variables,
+                  { id: newId(6), key: name, value: draft, enabled: true }
+                ]
+              }
+            : e
         )
       )
       toast(`{{${name}}} added to ${env.name}`)
@@ -173,7 +190,9 @@ function Card({ peek }: { peek: Peek }): React.JSX.Element {
     >
       <div className="var-peek-head">
         <span className="var-peek-name code-font">{`{{${name}}}`}</span>
-        <span className={`var-peek-scope ${scope === 'Unresolved' ? 'var-peek-missing' : ''}`}>{scope}</span>
+        <span className={`var-peek-scope ${scope === 'Unresolved' ? 'var-peek-missing' : ''}`}>
+          {scope}
+        </span>
       </div>
       {dynamic ? (
         <div className="var-peek-note">

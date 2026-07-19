@@ -7,19 +7,39 @@ import { prettyJson } from '@/lib/format'
 
 const IconUp = (
   <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden>
-    <path d="M3.5 10l4.5-4.5L12.5 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M3.5 10l4.5-4.5L12.5 10"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 )
 
 const IconDown = (
   <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden>
-    <path d="M3.5 6l4.5 4.5L12.5 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M3.5 6l4.5 4.5L12.5 6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 )
 
 const IconClose = (
   <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden>
-    <path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path
+      d="M4 4l8 8M12 4l-8 8"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
   </svg>
 )
 
@@ -80,9 +100,16 @@ export function FindBar(): React.JSX.Element | null {
         spellCheck={false}
       />
       <span className="find-count code-font">
-        {find.query ? `${total ? idx + 1 : 0}/${total >= MAX_MATCHES ? `${MAX_MATCHES}+` : total}` : ''}
+        {find.query
+          ? `${total ? idx + 1 : 0}/${total >= MAX_MATCHES ? `${MAX_MATCHES}+` : total}`
+          : ''}
       </span>
-      <button className="icon-btn" title="Previous (Shift+Enter)" disabled={!total} onClick={() => step(-1)}>
+      <button
+        className="icon-btn"
+        title="Previous (Shift+Enter)"
+        disabled={!total}
+        onClick={() => step(-1)}
+      >
         {IconUp}
       </button>
       <button className="icon-btn" title="Next (Enter)" disabled={!total} onClick={() => step(1)}>

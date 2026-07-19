@@ -169,7 +169,9 @@ export function Select<T extends string = string>({
                 >
                   <span>{opt.label}</span>
                   {opt.hint && <span className="select-hint">{opt.hint}</span>}
-                  {opt.value === value && <Check className="menu-check" size={13} strokeWidth={2.5} />}
+                  {opt.value === value && (
+                    <Check className="menu-check" size={13} strokeWidth={2.5} />
+                  )}
                 </button>
               ))}
             </div>

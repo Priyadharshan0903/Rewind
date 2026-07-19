@@ -5,7 +5,9 @@ function kv(key: string, value: string): KV {
   return { id: newId(6), key, value, enabled: true }
 }
 
-function req(partial: Omit<RequestNode, 'type' | 'auth' | 'scripts' | 'examples'> & Partial<RequestNode>): RequestNode {
+function req(
+  partial: Omit<RequestNode, 'type' | 'auth' | 'scripts' | 'examples'> & Partial<RequestNode>
+): RequestNode {
   return {
     type: 'request',
     auth: { mode: 'inherit' },
@@ -170,7 +172,9 @@ export function buildSeed(): SeedData {
         headers: [],
         body: { mode: 'none', text: '' },
         auth: { mode: 'none' },
-        captures: [{ id: newId(6), enabled: true, source: 'body', path: 'userId', variable: 'authorId' }]
+        captures: [
+          { id: newId(6), enabled: true, source: 'body', path: 'userId', variable: 'authorId' }
+        ]
       }),
       req({
         id: 'req-demo-author',
@@ -253,7 +257,8 @@ export function buildSeed(): SeedData {
         method: 'POST',
         url: `${base}/v1/charges`,
         headers: [...BASE_HEADERS, ['Idempotency-Key', 'idk_5fa2c1d0']],
-        bodyText: '{\n  "amount": 2000,\n  "currency": "usd",\n  "customer": "cus_9x2LkQm",\n  "capture": true\n}'
+        bodyText:
+          '{\n  "amount": 2000,\n  "currency": "usd",\n  "customer": "cus_9x2LkQm",\n  "capture": true\n}'
       },
       response: {
         status: 201,
@@ -284,7 +289,8 @@ export function buildSeed(): SeedData {
         method: 'POST',
         url: `${base}/v1/charges`,
         headers: [...BASE_HEADERS, ['Idempotency-Key', 'idk_2bc80e11']],
-        bodyText: '{\n  "amount": 2000,\n  "currency": "usd",\n  "customer": "cus_4hTqPa",\n  "capture": true\n}'
+        bodyText:
+          '{\n  "amount": 2000,\n  "currency": "usd",\n  "customer": "cus_4hTqPa",\n  "capture": true\n}'
       },
       response: {
         status: 402,
@@ -341,7 +347,8 @@ export function buildSeed(): SeedData {
         method: 'POST',
         url: `${base}/v1/charges`,
         headers: [...BASE_HEADERS, ['Idempotency-Key', 'idk_90aa41b7']],
-        bodyText: '{\n  "amount": 1200,\n  "currency": "usd",\n  "customer": "cus_4hTqPa",\n  "capture": true\n}'
+        bodyText:
+          '{\n  "amount": 1200,\n  "currency": "usd",\n  "customer": "cus_4hTqPa",\n  "capture": true\n}'
       },
       response: {
         status: 201,

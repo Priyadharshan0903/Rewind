@@ -39,7 +39,9 @@ export function HistoryPanel(): React.JSX.Element {
                 if (!isCurrent) void setCompare(run.id)
               }}
             >
-              <span className={`code-chip ${ok ? 'code-ok' : 'code-err'}`}>{run.error ? 'ERR' : run.status}</span>
+              <span className={`code-chip ${ok ? 'code-ok' : 'code-err'}`}>
+                {run.error ? 'ERR' : run.status}
+              </span>
               <span className="run-col">
                 <span className="run-time code-font">{runTime(run.ts)}</span>
                 <span className="run-meta">

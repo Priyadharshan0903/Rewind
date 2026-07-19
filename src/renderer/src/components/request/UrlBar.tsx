@@ -40,7 +40,11 @@ export function RequestTitle({
       {dirty && (
         <span className="draft-controls">
           <span className="dirty-dot" title="Unsaved changes" />
-          <button className="draft-btn draft-discard" onClick={discardDraft} title="Revert to last saved state">
+          <button
+            className="draft-btn draft-discard"
+            onClick={discardDraft}
+            title="Revert to last saved state"
+          >
             Discard
           </button>
           <button className="draft-btn draft-save" onClick={saveDraft}>
@@ -49,7 +53,9 @@ export function RequestTitle({
           </button>
         </span>
       )}
-      <span className="req-title-loc">{folder ? `${collection.name} / ${folder}` : collection.name}</span>
+      <span className="req-title-loc">
+        {folder ? `${collection.name} / ${folder}` : collection.name}
+      </span>
     </div>
   )
 }
@@ -96,13 +102,19 @@ export function UrlRow({ request }: { request: RequestNode }): React.JSX.Element
       // An explicit Authorization header replaces the inherited env auth.
       ...(hasAuthHeader ? { auth: { mode: 'none' as const } } : {})
     })
-    toast(`Imported from cURL — ${parsed.method} · ${parsed.headers.length} headers${body.mode !== 'none' ? ' · body' : ''}`)
+    toast(
+      `Imported from cURL — ${parsed.method} · ${parsed.headers.length} headers${body.mode !== 'none' ? ' · body' : ''}`
+    )
   }
 
   return (
     <div className="url-row">
       <MethodSelect method={request.method} onChange={(method) => updateRequest({ method })} />
-      <UrlInput url={request.url} onChange={(url) => updateRequest({ url })} onImportCurl={importCurl} />
+      <UrlInput
+        url={request.url}
+        onChange={(url) => updateRequest({ url })}
+        onImportCurl={importCurl}
+      />
       <div className="url-copy">
         <CopyMenu req={codegenReq} compact />
       </div>
@@ -124,7 +136,10 @@ function MethodSelect({
   const [open, setOpen] = useState(false)
   return (
     <div className="method-wrap">
-      <button className={`method-btn method-${method.toLowerCase()}`} onClick={() => setOpen((v) => !v)}>
+      <button
+        className={`method-btn method-${method.toLowerCase()}`}
+        onClick={() => setOpen((v) => !v)}
+      >
         {method}
         <ChevronDown className="caret" size={13} strokeWidth={2} />
       </button>
@@ -207,7 +222,12 @@ function UrlInput({
       <div className="url-hl-clip">
         <div className="url-hl code-font" ref={hlRef}>
           {segments.map((s, i) => (
-            <span key={i} className={s.kind === 'plain' ? undefined : s.kind === 'var' ? 'url-var' : 'url-var-missing'}>
+            <span
+              key={i}
+              className={
+                s.kind === 'plain' ? undefined : s.kind === 'var' ? 'url-var' : 'url-var-missing'
+              }
+            >
               {s.text}
             </span>
           ))}

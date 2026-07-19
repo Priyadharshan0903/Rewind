@@ -69,10 +69,43 @@ export function parseCurl(text: string): ParsedCurl | null {
   let user: string | null = null
 
   const takesValue = new Set([
-    '-X', '--request', '-H', '--header', '-d', '--data', '--data-raw', '--data-binary', '--data-ascii',
-    '--data-urlencode', '--url', '-u', '--user', '-A', '--user-agent', '-e', '--referer', '-b', '--cookie',
-    '-o', '--output', '-T', '--upload-file', '--connect-timeout', '--max-time', '-m', '-w', '--write-out',
-    '--cacert', '--capath', '--cert', '--key', '--proxy', '-x', '--retry', '--form', '-F'
+    '-X',
+    '--request',
+    '-H',
+    '--header',
+    '-d',
+    '--data',
+    '--data-raw',
+    '--data-binary',
+    '--data-ascii',
+    '--data-urlencode',
+    '--url',
+    '-u',
+    '--user',
+    '-A',
+    '--user-agent',
+    '-e',
+    '--referer',
+    '-b',
+    '--cookie',
+    '-o',
+    '--output',
+    '-T',
+    '--upload-file',
+    '--connect-timeout',
+    '--max-time',
+    '-m',
+    '-w',
+    '--write-out',
+    '--cacert',
+    '--capath',
+    '--cert',
+    '--key',
+    '--proxy',
+    '-x',
+    '--retry',
+    '--form',
+    '-F'
   ])
 
   for (let i = 1; i < words.length; i++) {

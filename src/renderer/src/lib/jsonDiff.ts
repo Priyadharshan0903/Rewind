@@ -32,7 +32,12 @@ function mergeChanged(a: string, b: string): string {
   while (p > 0 && isWord(a[p - 1]) && (isWord(a[p]) || isWord(b[p]))) p--
   let s = 0
   while (s < a.length - p && s < b.length - p && a[a.length - 1 - s] === b[b.length - 1 - s]) s++
-  while (s > 0 && isWord(a[a.length - s]) && (isWord(a[a.length - s - 1]) || isWord(b[b.length - s - 1]))) s--
+  while (
+    s > 0 &&
+    isWord(a[a.length - s]) &&
+    (isWord(a[a.length - s - 1]) || isWord(b[b.length - s - 1]))
+  )
+    s--
   const oldMid = a.slice(p, a.length - s).trim()
   const newMid = b.slice(p, b.length - s).trim()
   if (!oldMid && !newMid) return a
@@ -60,7 +65,8 @@ export function jsonDiff(oldText: string, newText: string): DiffRow[] {
       pendingDel = lines
     } else if (part.added) {
       const n = Math.min(pendingDel.length, lines.length)
-      for (let i = 0; i < n; i++) rows.push({ kind: 'chg', text: mergeChanged(pendingDel[i], lines[i]) })
+      for (let i = 0; i < n; i++)
+        rows.push({ kind: 'chg', text: mergeChanged(pendingDel[i], lines[i]) })
       for (let i = n; i < pendingDel.length; i++) rows.push({ kind: 'del', text: pendingDel[i] })
       for (let i = n; i < lines.length; i++) rows.push({ kind: 'add', text: lines[i] })
       pendingDel = []

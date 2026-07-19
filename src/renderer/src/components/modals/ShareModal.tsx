@@ -1,54 +1,54 @@
-import { useState } from "react";
-import { X, Download, Upload } from "lucide-react";
-import { useApp } from "@/stores/app";
-import { useRuns } from "@/stores/runs";
-import { useUi } from "@/stores/ui";
-import { Overlay } from "@/components/common/Overlay";
+import { useState } from 'react'
+import { X, Download, Upload } from 'lucide-react'
+import { useApp } from '@/stores/app'
+import { useRuns } from '@/stores/runs'
+import { useUi } from '@/stores/ui'
+import { Overlay } from '@/components/common/Overlay'
 
 export function ShareModal(): React.JSX.Element {
-  const toggleShare = useUi((s) => s.toggleShare);
-  const toast = useUi((s) => s.toast);
-  const applyBoot = useApp((s) => s.applyBoot);
-  const loadAll = useRuns((s) => s.loadAll);
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"Editor" | "Viewer">("Editor");
-  const [includeHistory, setIncludeHistory] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const toggleShare = useUi((s) => s.toggleShare)
+  const toast = useUi((s) => s.toast)
+  const applyBoot = useApp((s) => s.applyBoot)
+  const loadAll = useRuns((s) => s.loadAll)
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState<'Editor' | 'Viewer'>('Editor')
+  const [includeHistory, setIncludeHistory] = useState(true)
+  const [busy, setBusy] = useState(false)
 
   const invite = (): void => {
-    toast("Invites need a Rewind account — Rewind is local-first for now");
-    setEmail("");
-  };
+    toast('Invites need a Rewind account — Rewind is local-first for now')
+    setEmail('')
+  }
 
   const doExport = async (): Promise<void> => {
-    setBusy(true);
+    setBusy(true)
     try {
-      const result = await window.rewind.exportBundle({ includeHistory });
-      if (result.path) toast(`Exported to ${result.path}`);
-      else if (result.error) toast(result.error, "error");
+      const result = await window.rewind.exportBundle({ includeHistory })
+      if (result.path) toast(`Exported to ${result.path}`)
+      else if (result.error) toast(result.error, 'error')
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
-  };
+  }
 
   const doImport = async (): Promise<void> => {
-    setBusy(true);
+    setBusy(true)
     try {
-      const result = await window.rewind.importBundle();
+      const result = await window.rewind.importBundle()
       if (result.error) {
-        toast(result.error, "error");
+        toast(result.error, 'error')
       } else if (result.ok && result.boot) {
-        applyBoot(result.boot);
-        void loadAll();
-        toggleShare();
+        applyBoot(result.boot)
+        void loadAll()
+        toggleShare()
         toast(
-          `Imported ${result.counts?.collections ?? 0} collections, ${result.counts?.environments ?? 0} environments, ${result.counts?.runs ?? 0} runs`,
-        );
+          `Imported ${result.counts?.collections ?? 0} collections, ${result.counts?.environments ?? 0} environments, ${result.counts?.runs ?? 0} runs`
+        )
       }
     } finally {
-      setBusy(false);
+      setBusy(false)
     }
-  };
+  }
 
   return (
     <Overlay onClose={toggleShare} center>
@@ -65,7 +65,7 @@ export function ShareModal(): React.JSX.Element {
             placeholder="teammate@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && invite()}
+            onKeyDown={(e) => e.key === 'Enter' && invite()}
           />
           <select
             className="role-select"
@@ -80,28 +80,20 @@ export function ShareModal(): React.JSX.Element {
           </button>
         </div>
         <div className="invite-empty">
-          No teammates yet — invites need a Rewind account. Your workspace stays
-          on this machine until you share it.
+          No teammates yet — invites need a Rewind account. Your workspace stays on this machine
+          until you share it.
         </div>
         <div className="move-section">
           <span className="micro-label">MOVE TO ANOTHER DEVICE</span>
           <span className="move-note">
-            Bundle collections, environments and run history into one plain-JSON
-            file — import it on any machine, no account needed.
+            Bundle collections, environments and run history into one plain-JSON file — import it on
+            any machine, no account needed.
           </span>
           <div className="move-actions">
-            <button
-              className="ghost-btn"
-              disabled={busy}
-              onClick={() => void doExport()}
-            >
+            <button className="ghost-btn" disabled={busy} onClick={() => void doExport()}>
               <Download size={14} strokeWidth={2} /> Export .rewind
             </button>
-            <button
-              className="ghost-btn"
-              disabled={busy}
-              onClick={() => void doImport()}
-            >
+            <button className="ghost-btn" disabled={busy} onClick={() => void doImport()}>
               <Upload size={14} strokeWidth={2} /> Import from file
             </button>
             <label className="include-history">
@@ -120,5 +112,5 @@ export function ShareModal(): React.JSX.Element {
         </div>
       </div>
     </Overlay>
-  );
+  )
 }

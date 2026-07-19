@@ -22,7 +22,10 @@ export async function loadBoot(): Promise<BootPayload> {
     await seedAll()
     workspace = (await readJson<Workspace>(files.workspace()))!
   }
-  const settings = { ...DEFAULT_SETTINGS, ...((await readJson<Partial<Settings>>(files.settings())) ?? {}) }
+  const settings = {
+    ...DEFAULT_SETTINGS,
+    ...((await readJson<Partial<Settings>>(files.settings())) ?? {})
+  }
   const environments = (await readJson<Environment[]>(files.environments())) ?? []
   const collections = await loadCollections()
   return { workspace, settings, environments, collections }
@@ -84,7 +87,11 @@ export async function replaceAll(payload: {
     await fs.rm(files.runsDir(), { recursive: true, force: true })
     await fs.mkdir(files.runsDir(), { recursive: true })
     for (const [day, lines] of Object.entries(payload.runsByDay)) {
-      await fs.writeFile(path.join(files.runsDir(), `${day}.jsonl`), lines.join('\n') + '\n', 'utf8')
+      await fs.writeFile(
+        path.join(files.runsDir(), `${day}.jsonl`),
+        lines.join('\n') + '\n',
+        'utf8'
+      )
     }
   }
 }

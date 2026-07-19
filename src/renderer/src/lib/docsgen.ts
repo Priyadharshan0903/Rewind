@@ -175,7 +175,9 @@ function endpointFrom(
       status: ex.status,
       reqMethod: node.method,
       reqUrl: node.url,
-      reqHeaders: node.headers.filter((h) => h.enabled && h.key.trim()).map((h) => [h.key, h.value] as [string, string]),
+      reqHeaders: node.headers
+        .filter((h) => h.enabled && h.key.trim())
+        .map((h) => [h.key, h.value] as [string, string]),
       reqBody: node.body.text,
       resBody: ex.bodyText
     }
@@ -268,7 +270,10 @@ export function pickLatestRuns(
 // ---------- Standalone HTML export ----------
 
 function esc(s: string): string {
-  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string)
+  return s.replace(
+    /[&<>"]/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string
+  )
 }
 
 function maskValue(v: DocVariable): string {
@@ -283,7 +288,9 @@ export function renderDocsHtml(docs: CollectionDocs): string {
           .map(
             (p) =>
               `<tr><td><code>${esc(p.name)}</code></td><td>${p.location}</td><td>${
-                p.example != null ? `<code>${esc(String(p.example))}</code>` : '<span class="muted">—</span>'
+                p.example != null
+                  ? `<code>${esc(String(p.example))}</code>`
+                  : '<span class="muted">—</span>'
               }</td></tr>`
           )
           .join('')}</tbody></table>`
@@ -291,13 +298,17 @@ export function renderDocsHtml(docs: CollectionDocs): string {
 
     const example = e.example
       ? `<div class="ex"><div class="ex-h">Example request${
-          e.example.source === 'history' ? ' <span class="tag">captured</span>' : ' <span class="tag">saved</span>'
+          e.example.source === 'history'
+            ? ' <span class="tag">captured</span>'
+            : ' <span class="tag">saved</span>'
         }</div><pre>${esc(e.example.reqMethod + ' ' + e.example.reqUrl)}${
           e.example.reqBody ? '\n\n' + esc(e.example.reqBody) : ''
         }</pre>${
           e.example.resBody != null
             ? `<div class="ex-h">Example response${
-                e.example.status ? ` <span class="status">${e.example.status}${e.example.statusText ? ' ' + esc(e.example.statusText) : ''}</span>` : ''
+                e.example.status
+                  ? ` <span class="status">${e.example.status}${e.example.statusText ? ' ' + esc(e.example.statusText) : ''}</span>`
+                  : ''
               }</div><pre>${esc(e.example.resBody)}</pre>`
             : ''
         }</div>`
@@ -321,7 +332,10 @@ export function renderDocsHtml(docs: CollectionDocs): string {
 
   const vars = docs.variables.length
     ? `<div class="vars"><h2 class="group">Variables</h2><table class="p"><tbody>${docs.variables
-        .map((v) => `<tr><td><code>{{${esc(v.key)}}}</code></td><td><code>${esc(maskValue(v))}</code></td></tr>`)
+        .map(
+          (v) =>
+            `<tr><td><code>{{${esc(v.key)}}}</code></td><td><code>${esc(maskValue(v))}</code></td></tr>`
+        )
         .join('')}</tbody></table></div>`
     : ''
 
@@ -329,7 +343,10 @@ export function renderDocsHtml(docs: CollectionDocs): string {
     .map(
       (g) =>
         `${g.name ? `<div class="nav-g">${esc(g.name)}</div>` : ''}${g.endpoints
-          .map((e) => `<a href="#${esc(e.requestId)}"><span class="m m-${e.method.toLowerCase()}">${e.method}</span>${esc(e.path)}</a>`)
+          .map(
+            (e) =>
+              `<a href="#${esc(e.requestId)}"><span class="m m-${e.method.toLowerCase()}">${e.method}</span>${esc(e.path)}</a>`
+          )
           .join('')}`
     )
     .join('')

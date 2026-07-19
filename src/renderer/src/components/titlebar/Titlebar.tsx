@@ -1,5 +1,13 @@
 import { useState } from 'react'
-import { PanelLeft, PanelBottom, PanelRight, ChevronDown, Check, Settings, Share2 } from 'lucide-react'
+import {
+  PanelLeft,
+  PanelBottom,
+  PanelRight,
+  ChevronDown,
+  Check,
+  Settings,
+  Share2
+} from 'lucide-react'
 import { useApp, useActiveEnv } from '@/stores/app'
 import { useUi } from '@/stores/ui'
 
@@ -13,13 +21,22 @@ export function Titlebar(): React.JSX.Element {
     <div className="titlebar">
       <div className="traffic-space" />
       <div className="seg no-drag">
-        <button className={view === 'runbook' ? 'seg-btn seg-active' : 'seg-btn'} onClick={() => setView('runbook')}>
+        <button
+          className={view === 'runbook' ? 'seg-btn seg-active' : 'seg-btn'}
+          onClick={() => setView('runbook')}
+        >
           Runbook
         </button>
-        <button className={view === 'history' ? 'seg-btn seg-active' : 'seg-btn'} onClick={() => setView('history')}>
+        <button
+          className={view === 'history' ? 'seg-btn seg-active' : 'seg-btn'}
+          onClick={() => setView('history')}
+        >
           History
         </button>
-        <button className={view === 'docs' ? 'seg-btn seg-active' : 'seg-btn'} onClick={() => setView('docs')}>
+        <button
+          className={view === 'docs' ? 'seg-btn seg-active' : 'seg-btn'}
+          onClick={() => setView('docs')}
+        >
           Docs
         </button>
       </div>
@@ -122,7 +139,8 @@ function EnvPill(): React.JSX.Element {
                 openEnvEditor()
               }}
             >
-              <Settings size={13} strokeWidth={2} /> Edit variables…<span className="menu-kbd">⌘ E</span>
+              <Settings size={13} strokeWidth={2} /> Edit variables…
+              <span className="menu-kbd">⌘ E</span>
             </button>
           </div>
         </>

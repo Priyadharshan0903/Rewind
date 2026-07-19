@@ -42,7 +42,9 @@ export function dayLabel(ts: number): string {
   const ago = daysAgo(ts)
   if (ago === 0) return 'TODAY'
   if (ago === 1) return 'YESTERDAY'
-  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase()
+  return new Date(ts)
+    .toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    .toUpperCase()
 }
 
 /** Pretty-print JSON for display; non-JSON comes back untouched. */

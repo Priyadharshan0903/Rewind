@@ -10,7 +10,6 @@ const FORMATS: { key: string; label: string; build: (req: RunRequest) => string 
   { key: 'python', label: 'Python (requests)', build: buildPython }
 ]
 
-
 /** "Copy as" dropdown — cURL / Node.js / Python snippets for a resolved request. */
 export function CopyMenu({
   req,

@@ -22,11 +22,14 @@ export function buildCurl(req: RunRequest): string {
 export function buildNode(req: RunRequest): string {
   const lines: string[] = []
   if (req.bodyForm) {
-    if (req.bodyForm.some((f) => f.type === 'file')) lines.push(`import { openAsBlob } from 'node:fs'`, '')
+    if (req.bodyForm.some((f) => f.type === 'file'))
+      lines.push(`import { openAsBlob } from 'node:fs'`, '')
     lines.push('const form = new FormData()')
     for (const f of req.bodyForm) {
       if (f.type === 'file') {
-        lines.push(`form.append(${JSON.stringify(f.name)}, await openAsBlob(${JSON.stringify(f.value)}), ${JSON.stringify(f.value.split('/').pop() ?? 'file')})`)
+        lines.push(
+          `form.append(${JSON.stringify(f.name)}, await openAsBlob(${JSON.stringify(f.value)}), ${JSON.stringify(f.value.split('/').pop() ?? 'file')})`
+        )
       } else {
         lines.push(`form.append(${JSON.stringify(f.name)}, ${JSON.stringify(f.value)})`)
       }
@@ -36,7 +39,9 @@ export function buildNode(req: RunRequest): string {
   lines.push(`const res = await fetch(${JSON.stringify(req.url)}, {`, `  method: '${req.method}',`)
   if (req.headers.length) {
     lines.push('  headers: {')
-    lines.push(req.headers.map(([k, v]) => `    ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(',\n'))
+    lines.push(
+      req.headers.map(([k, v]) => `    ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(',\n')
+    )
     lines.push('  },')
   }
   if (req.bodyForm) lines.push('  body: form,')
@@ -47,10 +52,18 @@ export function buildNode(req: RunRequest): string {
 
 /** Python requests snippet. */
 export function buildPython(req: RunRequest): string {
-  const lines: string[] = ['import requests', '', `resp = requests.request(`, `    "${req.method}",`, `    ${JSON.stringify(req.url)},`]
+  const lines: string[] = [
+    'import requests',
+    '',
+    `resp = requests.request(`,
+    `    "${req.method}",`,
+    `    ${JSON.stringify(req.url)},`
+  ]
   if (req.headers.length) {
     lines.push('    headers={')
-    lines.push(req.headers.map(([k, v]) => `        ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(',\n'))
+    lines.push(
+      req.headers.map(([k, v]) => `        ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(',\n')
+    )
     lines.push('    },')
   }
   if (req.bodyForm) {
@@ -58,12 +71,20 @@ export function buildPython(req: RunRequest): string {
     const files = req.bodyForm.filter((f) => f.type === 'file')
     if (texts.length) {
       lines.push('    data={')
-      lines.push(texts.map((f) => `        ${JSON.stringify(f.name)}: ${JSON.stringify(f.value)}`).join(',\n'))
+      lines.push(
+        texts
+          .map((f) => `        ${JSON.stringify(f.name)}: ${JSON.stringify(f.value)}`)
+          .join(',\n')
+      )
       lines.push('    },')
     }
     if (files.length) {
       lines.push('    files={')
-      lines.push(files.map((f) => `        ${JSON.stringify(f.name)}: open(${JSON.stringify(f.value)}, "rb")`).join(',\n'))
+      lines.push(
+        files
+          .map((f) => `        ${JSON.stringify(f.name)}: open(${JSON.stringify(f.value)}, "rb")`)
+          .join(',\n')
+      )
       lines.push('    },')
     }
   } else if (req.bodyText.trim()) {
@@ -95,5 +116,9 @@ function pyLiteral(v: unknown, indent = 4): string {
   }
   const entries = Object.entries(v as Record<string, unknown>)
   if (!entries.length) return '{}'
-  return '{\n' + entries.map(([k, x]) => `${pad}${JSON.stringify(k)}: ${pyLiteral(x, indent + 4)}`).join(',\n') + `\n${close}}`
+  return (
+    '{\n' +
+    entries.map(([k, x]) => `${pad}${JSON.stringify(k)}: ${pyLiteral(x, indent + 4)}`).join(',\n') +
+    `\n${close}}`
+  )
 }

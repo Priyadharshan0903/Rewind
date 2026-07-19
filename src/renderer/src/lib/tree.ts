@@ -23,7 +23,11 @@ export function firstRequest(items: TreeNode[]): RequestNode | null {
   return null
 }
 
-export function mapRequest(items: TreeNode[], requestId: string, fn: (r: RequestNode) => RequestNode): TreeNode[] {
+export function mapRequest(
+  items: TreeNode[],
+  requestId: string,
+  fn: (r: RequestNode) => RequestNode
+): TreeNode[] {
   return items.map((node) => {
     if (node.type === 'request') return node.id === requestId ? fn(node) : node
     return { ...node, children: mapRequest(node.children, requestId, fn) }
@@ -73,7 +77,12 @@ export function removeNode(items: TreeNode[], nodeId: string): TreeNode[] {
 /** Deep-clone a node with fresh ids; the top node gets a " copy" suffix. */
 export function cloneNode(node: TreeNode, suffix = true): TreeNode {
   if (node.type === 'request') {
-    return { ...node, id: newId(), name: suffix ? `${node.name} copy` : node.name, headers: node.headers.map((h) => ({ ...h, id: newId(6) })) }
+    return {
+      ...node,
+      id: newId(),
+      name: suffix ? `${node.name} copy` : node.name,
+      headers: node.headers.map((h) => ({ ...h, id: newId(6) }))
+    }
   }
   return {
     ...node,
@@ -84,7 +93,10 @@ export function cloneNode(node: TreeNode, suffix = true): TreeNode {
 }
 
 /** Insert a duplicate of nodeId right after the original, same parent. */
-export function duplicateIn(items: TreeNode[], nodeId: string): { items: TreeNode[]; created: TreeNode | null } {
+export function duplicateIn(
+  items: TreeNode[],
+  nodeId: string
+): { items: TreeNode[]; created: TreeNode | null } {
   let created: TreeNode | null = null
   const walk = (list: TreeNode[]): TreeNode[] => {
     const idx = list.findIndex((n) => n.id === nodeId)

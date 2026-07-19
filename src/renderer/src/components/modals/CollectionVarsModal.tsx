@@ -15,7 +15,10 @@ export function CollectionVarsModal(): React.JSX.Element | null {
   const variables = collection.variables ?? []
 
   const patchVar = (id: string, patch: Partial<KV>): void =>
-    updateCollectionVariables(collection.id, variables.map((v) => (v.id === id ? { ...v, ...patch } : v)))
+    updateCollectionVariables(
+      collection.id,
+      variables.map((v) => (v.id === id ? { ...v, ...patch } : v))
+    )
 
   return (
     <Overlay onClose={() => closeOverlays()} center>
@@ -35,7 +38,11 @@ export function CollectionVarsModal(): React.JSX.Element | null {
           </div>
           {variables.map((v) => (
             <div key={v.id} className={v.enabled ? 'header-row' : 'header-row header-off'}>
-              <input type="checkbox" checked={v.enabled} onChange={(e) => patchVar(v.id, { enabled: e.target.checked })} />
+              <input
+                type="checkbox"
+                checked={v.enabled}
+                onChange={(e) => patchVar(v.id, { enabled: e.target.checked })}
+              />
               <input
                 className="header-key code-font"
                 placeholder="name"
@@ -53,19 +60,29 @@ export function CollectionVarsModal(): React.JSX.Element | null {
               <button
                 className="icon-btn"
                 title="Remove variable"
-                onClick={() => updateCollectionVariables(collection.id, variables.filter((x) => x.id !== v.id))}
+                onClick={() =>
+                  updateCollectionVariables(
+                    collection.id,
+                    variables.filter((x) => x.id !== v.id)
+                  )
+                }
               >
                 <X size={14} strokeWidth={2} />
               </button>
             </div>
           ))}
           {variables.length === 0 && (
-            <div className="hp-empty">No collection variables yet — they apply to every request in “{collection.name}”.</div>
+            <div className="hp-empty">
+              No collection variables yet — they apply to every request in “{collection.name}”.
+            </div>
           )}
           <button
             className="link-btn add-header"
             onClick={() =>
-              updateCollectionVariables(collection.id, [...variables, { id: newId(6), key: '', value: '', enabled: true }])
+              updateCollectionVariables(collection.id, [
+                ...variables,
+                { id: newId(6), key: '', value: '', enabled: true }
+              ])
             }
           >
             + Add variable
@@ -73,7 +90,8 @@ export function CollectionVarsModal(): React.JSX.Element | null {
         </div>
         <div className="modal-footer-note">
           <span className="dot dot-ok" />
-          Referenced as {'{{name}}'} · environment variables override collection variables on name collision
+          Referenced as {'{{name}}'} · environment variables override collection variables on name
+          collision
         </div>
       </div>
     </Overlay>

@@ -5,7 +5,8 @@ export interface Tok {
   text: string
 }
 
-const JSON_RE = /("(?:\\.|[^"\\])*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b/g
+const JSON_RE =
+  /("(?:\\.|[^"\\])*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b/g
 const JS_RE =
   /(\/\/.*$)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(-?\d+(?:\.\d+)?)|\b(true|false|null|const|let|var|assert|vars|res|console)\b/g
 
@@ -30,7 +31,8 @@ export function tokenizeLine(line: string, language: 'json' | 'js'): Tok[] {
       if (comment != null) toks.push({ kind: 'comment', text: comment })
       else if (str != null) toks.push({ kind: 'str', text: str })
       else if (num != null) toks.push({ kind: 'num', text: num })
-      else if (kw != null) toks.push({ kind: ['res', 'vars', 'console'].includes(kw) ? 'key' : 'bool', text: kw })
+      else if (kw != null)
+        toks.push({ kind: ['res', 'vars', 'console'].includes(kw) ? 'key' : 'bool', text: kw })
     }
     last = m.index + m[0].length
   }

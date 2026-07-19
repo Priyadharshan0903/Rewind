@@ -59,9 +59,12 @@ export async function listRuns(query: RunsQuery = {}): Promise<RunSummary[]> {
   out.sort((a, b) => b.ts - a.ts)
   let filtered = out
   if (query.requestId) filtered = filtered.filter((s) => s.requestId === query.requestId)
-  if (query.method && query.method !== 'all') filtered = filtered.filter((s) => s.method === query.method)
-  if (query.statusClass === '2xx') filtered = filtered.filter((s) => !s.error && (s.status ?? 0) < 400)
-  if (query.statusClass === '4xx') filtered = filtered.filter((s) => s.error || (s.status ?? 0) >= 400)
+  if (query.method && query.method !== 'all')
+    filtered = filtered.filter((s) => s.method === query.method)
+  if (query.statusClass === '2xx')
+    filtered = filtered.filter((s) => !s.error && (s.status ?? 0) < 400)
+  if (query.statusClass === '4xx')
+    filtered = filtered.filter((s) => s.error || (s.status ?? 0) >= 400)
   return query.limit ? filtered.slice(0, query.limit) : filtered
 }
 

@@ -9,7 +9,9 @@ import { newId } from './id'
 
 export function splitUrl(url: string): { base: string; query: string } {
   const idx = url.indexOf('?')
-  return idx === -1 ? { base: url, query: '' } : { base: url.slice(0, idx), query: url.slice(idx + 1) }
+  return idx === -1
+    ? { base: url, query: '' }
+    : { base: url.slice(0, idx), query: url.slice(idx + 1) }
 }
 
 function pairsFromQuery(query: string): [string, string][] {

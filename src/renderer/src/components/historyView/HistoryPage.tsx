@@ -86,7 +86,9 @@ export function HistoryPage(): React.JSX.Element {
                       }}
                     >
                       {m === 'all' ? 'Any method' : m}
-                      {m === filterMethod && <Check className="menu-check" size={13} strokeWidth={2.5} />}
+                      {m === filterMethod && (
+                        <Check className="menu-check" size={13} strokeWidth={2.5} />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -106,9 +108,13 @@ export function HistoryPage(): React.JSX.Element {
                     className={run.id === histSelectedId ? 'hist-row hist-row-active' : 'hist-row'}
                     onClick={() => void selectHist(run.id)}
                   >
-                    <span className={`method method-${run.method.toLowerCase()}`}>{run.method}</span>
+                    <span className={`method method-${run.method.toLowerCase()}`}>
+                      {run.method}
+                    </span>
                     <span className="hist-path code-font">{urlPath(run.url)}</span>
-                    <span className={`hist-code code-font ${ok ? 'ok' : 'err'}`}>{run.error ? 'ERR' : run.status}</span>
+                    <span className={`hist-code code-font ${ok ? 'ok' : 'err'}`}>
+                      {run.error ? 'ERR' : run.status}
+                    </span>
                     <span className="hist-time code-font">{runTime(run.ts)}</span>
                   </button>
                 )
@@ -118,7 +124,13 @@ export function HistoryPage(): React.JSX.Element {
           {allRuns.length === 0 && <div className="hp-empty">No runs match these filters</div>}
         </div>
       </div>
-      <div className="hist-detail">{histDetail ? <Snapshot run={histDetail} /> : <div className="center-empty">Select a run</div>}</div>
+      <div className="hist-detail">
+        {histDetail ? (
+          <Snapshot run={histDetail} />
+        ) : (
+          <div className="center-empty">Select a run</div>
+        )}
+      </div>
     </div>
   )
 }
@@ -158,7 +170,9 @@ function Snapshot({ run }: { run: Run }): React.JSX.Element {
           <div className="snap-section">
             <div className="micro-label">REQUEST</div>
             <div className="snap-url">
-              <span className={`method method-${run.request.method.toLowerCase()}`}>{run.request.method}</span>
+              <span className={`method method-${run.request.method.toLowerCase()}`}>
+                {run.request.method}
+              </span>
               <span className="snap-url-text code-font">{run.request.url}</span>
             </div>
           </div>
@@ -168,7 +182,11 @@ function Snapshot({ run }: { run: Run }): React.JSX.Element {
           </div>
           <div className="snap-body">
             <div className="micro-label">BODY</div>
-            {run.request.bodyText ? <CodeView text={run.request.bodyText} /> : <EmptyBody kind="request" method={run.request.method} />}
+            {run.request.bodyText ? (
+              <CodeView text={run.request.bodyText} />
+            ) : (
+              <EmptyBody kind="request" method={run.request.method} />
+            )}
           </div>
         </div>
         <div className="snap-col">
@@ -190,7 +208,11 @@ function Snapshot({ run }: { run: Run }): React.JSX.Element {
           </div>
           <div className="snap-section">
             <div className="micro-label">HEADERS</div>
-            {run.response ? <KvGrid pairs={run.response.headers} /> : <div className="hp-empty">{run.error}</div>}
+            {run.response ? (
+              <KvGrid pairs={run.response.headers} />
+            ) : (
+              <div className="hp-empty">{run.error}</div>
+            )}
           </div>
           <div className="snap-body">
             <div className="micro-label">BODY</div>

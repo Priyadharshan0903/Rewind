@@ -21,7 +21,9 @@ export function TabsBar(): React.JSX.Element | null {
     <div className="tabsbar">
       {openTabs.map((tab) => {
         const collection = collections.find((c) => c.id === tab.collectionId)
-        const request = drafts[tab.requestId] ?? (collection ? findRequest(collection.items, tab.requestId) : null)
+        const request =
+          drafts[tab.requestId] ??
+          (collection ? findRequest(collection.items, tab.requestId) : null)
         if (!request) return null
         const active = selection?.requestId === tab.requestId
         return (
@@ -35,7 +37,9 @@ export function TabsBar(): React.JSX.Element | null {
               if (e.button === 1) useApp.getState().closeTab(tab.requestId)
             }}
           >
-            <span className={`method method-${request.method.toLowerCase()}`}>{request.method}</span>
+            <span className={`method method-${request.method.toLowerCase()}`}>
+              {request.method}
+            </span>
             <span className="rtab-name">{request.name}</span>
             {drafts[tab.requestId] && <span className="dirty-dot" title="Unsaved changes" />}
             <button
