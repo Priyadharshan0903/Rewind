@@ -19,6 +19,7 @@ interface ReqItem {
   id: string
   label: string
   method: HttpMethod
+  reqKind?: 'http' | 'ws'
   crumb: string
   url: string
   run: () => void
@@ -51,6 +52,7 @@ function collectRequests(collections: Collection[]): ReqItem[] {
           id: node.id,
           label: node.name,
           method: node.method,
+          reqKind: node.kind,
           url: node.url,
           crumb: [collection.name, ...folders].join(' / '),
           run: () => {
@@ -107,6 +109,18 @@ export function CommandPalette(): React.JSX.Element {
           const collectionId = app.selection?.collectionId ?? app.collections[0]?.id
           if (!collectionId) return
           app.addRequest(collectionId, null)
+          ui.setView('runbook')
+        })
+      },
+      {
+        kind: 'command',
+        id: 'new-ws-request',
+        label: 'New WebSocket request',
+        run: go(() => {
+          const app = useApp.getState()
+          const collectionId = app.selection?.collectionId ?? app.collections[0]?.id
+          if (!collectionId) return
+          app.addRequest(collectionId, null, 'ws')
           ui.setView('runbook')
         })
       },
@@ -284,8 +298,10 @@ export function CommandPalette(): React.JSX.Element {
                   )}
                   {it.kind === 'request' && (
                     <>
-                      <span className={`palette-m method-${it.method.toLowerCase()}`}>
-                        {it.method}
+                      <span
+                        className={`palette-m ${it.reqKind === 'ws' ? 'method-ws' : `method-${it.method.toLowerCase()}`}`}
+                      >
+                        {it.reqKind === 'ws' ? 'WS' : it.method}
                       </span>
                       <span className="palette-label">{it.label}</span>
                       <span className="palette-sub">{it.crumb}</span>

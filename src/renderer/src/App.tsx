@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useApp } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
 import { useUi } from '@/stores/ui'
+import { useWs } from '@/stores/ws'
 import { Titlebar } from '@/components/titlebar/Titlebar'
 import { RunbookView } from '@/components/RunbookView'
 import { HistoryPage } from '@/components/historyView/HistoryPage'
@@ -51,6 +52,10 @@ export default function App(): React.JSX.Element {
 
   useEffect(() => {
     return window.rewind.onRunAppended((summary) => useRuns.getState().handleAppended(summary))
+  }, [])
+
+  useEffect(() => {
+    return window.rewind.onWsEvent((event) => useWs.getState().handleEvent(event))
   }, [])
 
   // ⌘W (File → Close Tab in the app menu) closes the active request tab.

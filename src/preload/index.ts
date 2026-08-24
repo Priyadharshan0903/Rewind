@@ -13,7 +13,9 @@ import type {
   RunsQuery,
   RunSummary,
   SendPayload,
-  Settings
+  Settings,
+  WsConnectPayload,
+  WsEvent
 } from '../shared/types'
 
 type ProfilesWithBoot = ProfilesState & { boot: BootPayload }
@@ -62,6 +64,16 @@ const api = {
     const listener = (): void => cb()
     ipcRenderer.on(IPC.tabsCloseActive, listener)
     return () => ipcRenderer.removeListener(IPC.tabsCloseActive, listener)
+  },
+  wsConnect: (payload: WsConnectPayload): Promise<void> =>
+    ipcRenderer.invoke(IPC.wsConnect, payload),
+  wsSend: (connectionId: string, data: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.wsSend, connectionId, data),
+  wsClose: (connectionId: string): Promise<void> => ipcRenderer.invoke(IPC.wsClose, connectionId),
+  onWsEvent: (cb: (event: WsEvent) => void): (() => void) => {
+    const listener = (_e: unknown, event: WsEvent): void => cb(event)
+    ipcRenderer.on(IPC.wsEvent, listener)
+    return () => ipcRenderer.removeListener(IPC.wsEvent, listener)
   }
 }
 

@@ -6,6 +6,7 @@ import { parseCurl, type ParsedCurl } from '@shared/curlParse'
 import { newId } from '@shared/id'
 import { useApp, useMergedVars } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
+import { useWs } from '@/stores/ws'
 import { useUi } from '@/stores/ui'
 import { findParentFolder } from '@/lib/tree'
 import { resolveForCodegen } from '@/lib/resolve'
@@ -67,6 +68,12 @@ export function UrlRow({ request }: { request: RequestNode }): React.JSX.Element
   const cancelSend = useRuns((s) => s.cancelSend)
   const toast = useUi((s) => s.toast)
   const vars = useMergedVars()
+  const isWs = request.kind === 'ws'
+  const wsConn = useWs((s) => s.connections[request.id])
+  const wsConnect = useWs((s) => s.connect)
+  const wsDisconnect = useWs((s) => s.disconnect)
+  const wsConnecting = wsConn?.state === 'connecting'
+  const wsOpen = wsConn?.state === 'open'
   // Resolve the current request for code snippets — no send required.
   const codegenReq = useMemo(() => resolveForCodegen(request, vars), [request, vars])
 
@@ -109,19 +116,36 @@ export function UrlRow({ request }: { request: RequestNode }): React.JSX.Element
 
   return (
     <div className="url-row">
-      <MethodSelect method={request.method} onChange={(method) => updateRequest({ method })} />
+      {isWs ? (
+        <span className="method-btn method-ws">WS</span>
+      ) : (
+        <MethodSelect method={request.method} onChange={(method) => updateRequest({ method })} />
+      )}
       <UrlInput
         url={request.url}
         onChange={(url) => updateRequest({ url })}
         onImportCurl={importCurl}
       />
-      <div className="url-copy">
-        <CopyMenu req={codegenReq} compact />
-      </div>
-      <button className="send-btn" onClick={() => (sending ? cancelSend() : void send())}>
-        {sending ? 'Cancel' : 'Send'}
-        {!sending && <span className="send-kbd">⌘↩</span>}
-      </button>
+      {!isWs && (
+        <div className="url-copy">
+          <CopyMenu req={codegenReq} compact />
+        </div>
+      )}
+      {isWs ? (
+        <button
+          className="send-btn"
+          onClick={() =>
+            wsOpen || wsConnecting ? wsDisconnect(request.id) : void wsConnect(request.id)
+          }
+        >
+          {wsConnecting ? 'Connecting…' : wsOpen ? 'Disconnect' : 'Connect'}
+        </button>
+      ) : (
+        <button className="send-btn" onClick={() => (sending ? cancelSend() : void send())}>
+          {sending ? 'Cancel' : 'Send'}
+          {!sending && <span className="send-kbd">⌘↩</span>}
+        </button>
+      )}
     </div>
   )
 }

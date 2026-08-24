@@ -94,6 +94,8 @@ export interface Capture {
 export interface RequestNode {
   id: string
   type: 'request'
+  /** Protocol kind; absent/undefined means 'http'. 'ws' ignores method/body/scripts/captures. */
+  kind?: 'http' | 'ws'
   name: string
   method: HttpMethod
   url: string
@@ -237,6 +239,25 @@ export interface SendPayload {
   collectionId: string
   request: RequestNode
 }
+
+export interface WsMessage {
+  id: string
+  ts: number
+  direction: 'sent' | 'received'
+  data: string
+}
+
+export interface WsConnectPayload {
+  connectionId: string
+  collectionId: string
+  request: RequestNode
+}
+
+export type WsEvent =
+  | { type: 'open'; connectionId: string }
+  | { type: 'message'; connectionId: string; message: WsMessage }
+  | { type: 'error'; connectionId: string; error: string }
+  | { type: 'close'; connectionId: string; code: number; reason: string }
 
 export interface RunsQuery {
   requestId?: string

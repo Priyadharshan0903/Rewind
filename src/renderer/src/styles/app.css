@@ -885,6 +885,10 @@ textarea {
   color: var(--query);
 }
 
+.method-ws {
+  color: var(--ws);
+}
+
 /* ---------- body mode switcher & form grids ---------- */
 
 .body-tab {
@@ -1763,6 +1767,80 @@ textarea {
   font-size: 11px;
   color: var(--warn);
   padding-bottom: 8px;
+}
+
+/* ---------- websocket message pane ---------- */
+
+.ws-msg-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ws-msg {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.ws-msg-dir {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.ws-msg-sent .ws-msg-dir {
+  color: var(--accent);
+}
+
+.ws-msg-received .ws-msg-dir {
+  color: var(--ok);
+}
+
+.ws-msg-time {
+  flex: none;
+  color: var(--text3);
+  font-size: 11px;
+}
+
+.ws-msg-data {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+}
+
+.ws-compose {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--border2);
+}
+
+.ws-compose-input {
+  flex: 1;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.ws-compose-input:disabled {
+  opacity: 0.5;
+}
+
+.ws-compose-send {
+  flex: none;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: var(--border2);
+  font-weight: 600;
 }
 
 /* ---------- history panel ---------- */

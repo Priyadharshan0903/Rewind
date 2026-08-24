@@ -24,5 +24,9 @@ export const IPC = {
   postmanImport: 'postman:import',
   tabsCloseActive: 'tabs:closeActive',
   dialogPickFile: 'dialog:pickFile',
-  shellOpenExternal: 'shell:openExternal'
+  shellOpenExternal: 'shell:openExternal',
+  wsConnect: 'ws:connect',
+  wsSend: 'ws:send',
+  wsClose: 'ws:close',
+  wsEvent: 'ws:event'
 } as const

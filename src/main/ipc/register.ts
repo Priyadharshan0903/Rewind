@@ -25,13 +25,15 @@ import type {
   RunsQuery,
   SendPayload,
   Settings,
-  TreeNode
+  TreeNode,
+  WsConnectPayload
 } from '@shared/types'
 import { toSummary } from '@shared/types'
 import { interpolate, varsFromEnv } from '@shared/interpolate'
 import { runCaptures } from '@shared/captures'
 import { newId } from '@shared/id'
 import { cancelSend, sendHttp } from '../services/httpClient'
+import * as wsClient from '../services/wsClient'
 import { runScript } from '../services/scriptRunner'
 import { appendRun, allRuns, getRun, listRuns } from '../services/runLog'
 import { dayKey } from '../services/seed'
@@ -61,6 +63,42 @@ function findRequest(items: TreeNode[], requestId: string): RequestNode | null {
     }
   }
   return null
+}
+
+/** Interpolates the URL/headers and resolves auth into a header or query param — shared by http:send and ws:connect. */
+function resolveUrlAndHeaders(
+  req: RequestNode,
+  vars: Record<string, string>
+): { url: string; headers: [string, string][] } {
+  let url = interpolate(req.url, vars).text
+  const headers: [string, string][] = []
+  for (const h of req.headers) {
+    if (!h.enabled || !h.key.trim()) continue
+    headers.push([interpolate(h.key, vars).text, interpolate(h.value, vars).text])
+  }
+  const hasAuthHeader = headers.some(([k]) => k.toLowerCase() === 'authorization')
+  if (!hasAuthHeader) {
+    if (req.auth.mode === 'inherit' && vars.token)
+      headers.unshift(['Authorization', `Bearer ${vars.token}`])
+    else if (req.auth.mode === 'bearer' && req.auth.token) {
+      headers.unshift(['Authorization', `Bearer ${interpolate(req.auth.token, vars).text}`])
+    } else if (req.auth.mode === 'basic') {
+      const user = interpolate(req.auth.username ?? '', vars).text
+      const pass = interpolate(req.auth.password ?? '', vars).text
+      if (user || pass)
+        headers.unshift([
+          'Authorization',
+          `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`
+        ])
+    }
+  }
+  if (req.auth.mode === 'apikey' && req.auth.key?.trim()) {
+    const key = interpolate(req.auth.key, vars).text
+    const value = interpolate(req.auth.value ?? '', vars).text
+    if (req.auth.addTo === 'query') url += `${url.includes('?') ? '&' : '?'}${key}=${value}`
+    else headers.unshift([key, value])
+  }
+  return { url, headers }
 }
 
 export function registerIpc(onThemeChange: (settings: Settings) => void): void {
@@ -124,35 +162,7 @@ export function registerIpc(onThemeChange: (settings: Settings) => void): void {
       ...varsFromEnv(env?.variables ?? [])
     }
     const req = payload.request
-
-    let url = interpolate(req.url, vars).text
-    const headers: [string, string][] = []
-    for (const h of req.headers) {
-      if (!h.enabled || !h.key.trim()) continue
-      headers.push([interpolate(h.key, vars).text, interpolate(h.value, vars).text])
-    }
-    const hasAuthHeader = headers.some(([k]) => k.toLowerCase() === 'authorization')
-    if (!hasAuthHeader) {
-      if (req.auth.mode === 'inherit' && vars.token)
-        headers.unshift(['Authorization', `Bearer ${vars.token}`])
-      else if (req.auth.mode === 'bearer' && req.auth.token) {
-        headers.unshift(['Authorization', `Bearer ${interpolate(req.auth.token, vars).text}`])
-      } else if (req.auth.mode === 'basic') {
-        const user = interpolate(req.auth.username ?? '', vars).text
-        const pass = interpolate(req.auth.password ?? '', vars).text
-        if (user || pass)
-          headers.unshift([
-            'Authorization',
-            `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`
-          ])
-      }
-    }
-    if (req.auth.mode === 'apikey' && req.auth.key?.trim()) {
-      const key = interpolate(req.auth.key, vars).text
-      const value = interpolate(req.auth.value ?? '', vars).text
-      if (req.auth.addTo === 'query') url += `${url.includes('?') ? '&' : '?'}${key}=${value}`
-      else headers.unshift([key, value])
-    }
+    const { url, headers } = resolveUrlAndHeaders(req, vars)
 
     const hasContentType = (): boolean => headers.some(([k]) => k.toLowerCase() === 'content-type')
     let bodyText = ''
@@ -230,6 +240,30 @@ export function registerIpc(onThemeChange: (settings: Settings) => void): void {
   })
 
   ipcMain.handle(IPC.httpCancel, (_e, sendId: string) => cancelSend(sendId))
+
+  ipcMain.handle(IPC.wsConnect, async (_e, payload: WsConnectPayload): Promise<void> => {
+    const [workspace, environments, collections] = await Promise.all([
+      getWorkspace(),
+      getEnvironments(),
+      loadCollections()
+    ])
+    const env = environments.find((x) => x.id === workspace.activeEnvironmentId) ?? environments[0]
+    const collection = collections.find((c) => c.id === payload.collectionId)
+    const vars = {
+      ...varsFromEnv(collection?.variables ?? []),
+      ...varsFromEnv(env?.variables ?? [])
+    }
+    const { url, headers } = resolveUrlAndHeaders(payload.request, vars)
+    wsClient.connect(payload.connectionId, { url, headers }, (event) =>
+      broadcast(IPC.wsEvent, event)
+    )
+  })
+
+  ipcMain.handle(IPC.wsSend, (_e, connectionId: string, data: string) =>
+    wsClient.send(connectionId, data)
+  )
+
+  ipcMain.handle(IPC.wsClose, (_e, connectionId: string) => wsClient.close(connectionId))
 
   ipcMain.handle(IPC.runsList, (_e, query: RunsQuery) => listRuns(query))
 

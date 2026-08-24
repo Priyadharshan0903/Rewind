@@ -74,7 +74,7 @@ interface AppState {
   addFolder: (collectionId: string) => void
   renameFolderNode: (collectionId: string, folderId: string, name: string) => void
   renameRequest: (collectionId: string, requestId: string, name: string) => void
-  addRequest: (collectionId: string, folderId: string | null) => void
+  addRequest: (collectionId: string, folderId: string | null, kind?: 'http' | 'ws') => void
   deleteNode: (collectionId: string, nodeId: string) => void
   duplicateNode: (collectionId: string, nodeId: string) => void
   duplicateCollection: (collectionId: string) => void
@@ -357,13 +357,14 @@ export const useApp = create<AppState>((set, get) => ({
     }
   },
 
-  addRequest: (collectionId, folderId) => {
+  addRequest: (collectionId, folderId, kind = 'http') => {
     const request: RequestNode = {
       id: newId(),
       type: 'request',
-      name: 'New request',
+      ...(kind === 'ws' ? { kind: 'ws' as const } : {}),
+      name: kind === 'ws' ? 'New WebSocket request' : 'New request',
       method: 'GET',
-      url: '{{baseUrl}}/',
+      url: kind === 'ws' ? 'wss://' : '{{baseUrl}}/',
       headers: [],
       body: { mode: 'none', text: '' },
       auth: { mode: 'inherit' },

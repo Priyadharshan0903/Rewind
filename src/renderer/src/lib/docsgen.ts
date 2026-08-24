@@ -208,7 +208,8 @@ function walk(
 ): void {
   const direct: DocEndpoint[] = []
   for (const node of items) {
-    if (node.type === 'request') {
+    // WS requests have no request/response shape to document — skip for now.
+    if (node.type === 'request' && node.kind !== 'ws') {
       direct.push(endpointFrom(node, latest.get(node.id), counts.get(node.id) ?? 0))
     }
   }

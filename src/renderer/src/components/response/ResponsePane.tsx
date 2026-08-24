@@ -10,6 +10,7 @@ import { charWidth, findMatches, normIndex } from '@/lib/find'
 import { CodeView, isLargeBody } from '@/components/common/Code'
 import { CopyMenu } from '@/components/common/CopyMenu'
 import { FindMarksLayer } from '@/components/common/FindBar'
+import { WsMessagePane } from '@/components/response/WsMessagePane'
 
 const RESP_FONT = '400 12px "JetBrains Mono", monospace'
 const RESP_LINE_H = 21.6 // 12px × 1.8
@@ -68,6 +69,8 @@ export function ResponsePane({ request }: { request: RequestNode }): React.JSX.E
   }
 
   const failedAsserts = run?.script?.assertions.filter((a) => !a.pass).length ?? 0
+
+  if (request.kind === 'ws') return <WsMessagePane request={request} />
 
   return (
     <div className="response-pane">

@@ -37,9 +37,13 @@ export function TabsBar(): React.JSX.Element | null {
               if (e.button === 1) useApp.getState().closeTab(tab.requestId)
             }}
           >
-            <span className={`method method-${request.method.toLowerCase()}`}>
-              {request.method}
-            </span>
+            {request.kind === 'ws' ? (
+              <span className="method method-ws">WS</span>
+            ) : (
+              <span className={`method method-${request.method.toLowerCase()}`}>
+                {request.method}
+              </span>
+            )}
             <span className="rtab-name">{request.name}</span>
             {drafts[tab.requestId] && <span className="dirty-dot" title="Unsaved changes" />}
             <button

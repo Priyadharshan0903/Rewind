@@ -4,6 +4,7 @@ import type { Collection, FolderNode, RequestNode, TreeNode } from '@shared/type
 import { buildCurl } from '@shared/codegen'
 import { mergedVars, useApp } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
+import { useWs } from '@/stores/ws'
 import { useUi, type ContextItem } from '@/stores/ui'
 import { resolveForCodegen } from '@/lib/resolve'
 
@@ -312,6 +313,10 @@ function CollectionBlock({ collection }: { collection: Collection }): React.JSX.
       action: () => (setOpen(true), app().addRequest(collection.id, null))
     },
     {
+      label: 'Add WebSocket request',
+      action: () => (setOpen(true), app().addRequest(collection.id, null, 'ws'))
+    },
+    {
       label: 'Add folder',
       action: () => (setOpen(true), app().addFolder(collection.id))
     },
@@ -427,6 +432,10 @@ function FolderRow({
       action: () => (setOpen(true), app().addRequest(collectionId, folder.id))
     },
     {
+      label: 'Add WebSocket request',
+      action: () => (setOpen(true), app().addRequest(collectionId, folder.id, 'ws'))
+    },
+    {
       label: 'Add folder',
       action: () => (setOpen(true), app().addFolder(collectionId))
     },
@@ -525,25 +534,38 @@ function RequestRow({
   const onContext = useContextMenu()
   const active = selection?.requestId === request.id
 
+  const isWs = request.kind === 'ws'
   const menu: ContextItem[] = [
-    {
-      label: 'Send',
-      action: () => {
-        useApp.getState().selectRequest(collectionId, request.id)
-        void useRuns.getState().send()
-      }
-    },
-    {
-      label: 'Copy as cURL',
-      action: async () => {
-        const state = useApp.getState()
-        const vars = mergedVars(state, collectionId)
-        await navigator.clipboard.writeText(
-          buildCurl(resolveForCodegen(state.drafts[request.id] ?? request, vars))
-        )
-        toast('Copied as cURL')
-      }
-    },
+    isWs
+      ? {
+          label: 'Connect',
+          action: () => {
+            useApp.getState().selectRequest(collectionId, request.id)
+            void useWs.getState().connect(request.id)
+          }
+        }
+      : {
+          label: 'Send',
+          action: () => {
+            useApp.getState().selectRequest(collectionId, request.id)
+            void useRuns.getState().send()
+          }
+        },
+    ...(isWs
+      ? []
+      : [
+          {
+            label: 'Copy as cURL',
+            action: async () => {
+              const state = useApp.getState()
+              const vars = mergedVars(state, collectionId)
+              await navigator.clipboard.writeText(
+                buildCurl(resolveForCodegen(state.drafts[request.id] ?? request, vars))
+              )
+              toast('Copied as cURL')
+            }
+          }
+        ]),
     { sep: true },
     { label: 'Rename', action: () => setRenamingId(request.id) },
     {
@@ -568,7 +590,11 @@ function RequestRow({
       onClick={() => useApp.getState().selectRequest(collectionId, request.id)}
       onContextMenu={(e) => onContext(e, menu)}
     >
-      <span className={`method method-${request.method.toLowerCase()}`}>{request.method}</span>
+      {request.kind === 'ws' ? (
+        <span className="method method-ws">WS</span>
+      ) : (
+        <span className={`method method-${request.method.toLowerCase()}`}>{request.method}</span>
+      )}
       <span className="req-name">
         <EditableLabel
           id={request.id}

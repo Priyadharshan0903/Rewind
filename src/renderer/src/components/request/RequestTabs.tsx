@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, X, Plus, ArrowRight, ShieldOff } from 'lucide-react'
 import type { Capture, FormField, KV, RequestAuth, RequestNode } from '@shared/types'
 import { newId } from '@shared/id'
@@ -29,6 +29,7 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
   const responsePaneOpen = useApp((s) => s.settings.responsePaneOpen)
   const patchSettings = useApp((s) => s.patchSettings)
   const contentRef = useRef<HTMLDivElement>(null)
+  const isWs = request.kind === 'ws'
   const inheritsAuth = request.auth.mode === 'inherit' && !!vars.token
   const headerCount =
     request.headers.filter((h) => h.enabled && h.key.trim()).length + (inheritsAuth ? 1 : 0)
@@ -36,6 +37,12 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
     (p) => p.enabled && p.key.trim()
   ).length
   const captureCount = (request.captures ?? []).filter((c) => c.enabled && c.variable.trim()).length
+  const visibleTabs = isWs ? TABS.filter((t) => t.key !== 'body' && t.key !== 'scripts') : TABS
+
+  // A WS request has no body/scripts panes — bounce off them if left selected from an HTTP request.
+  useEffect(() => {
+    if (isWs && (tab === 'body' || tab === 'scripts')) setTab('params')
+  }, [isWs, tab, setTab])
 
   const height = savedHeight
 
@@ -83,7 +90,7 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
   return (
     <>
       <div className="tabs-row">
-        {TABS.map((t) => (
+        {visibleTabs.map((t) => (
           <button
             key={t.key}
             className={tab === t.key ? 'tab tab-active' : 'tab'}
@@ -101,16 +108,18 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
             )}
           </button>
         ))}
-        <button
-          className="text-btn tabs-find-btn icon-tb"
-          title="Find in request body (⌘F)"
-          onClick={() => {
-            setTab('body')
-            useUi.getState().setFind({ open: true, scope: 'request', idx: 0 })
-          }}
-        >
-          <Search size={15} strokeWidth={2} />
-        </button>
+        {!isWs && (
+          <button
+            className="text-btn tabs-find-btn icon-tb"
+            title="Find in request body (⌘F)"
+            onClick={() => {
+              setTab('body')
+              useUi.getState().setFind({ open: true, scope: 'request', idx: 0 })
+            }}
+          >
+            <Search size={15} strokeWidth={2} />
+          </button>
+        )}
       </div>
       <div
         className="request-area"
@@ -123,10 +132,10 @@ export function RequestTabs({ request }: { request: RequestNode }): React.JSX.El
           style={responsePaneOpen ? { height } : { height: 'auto', flex: 1 }}
         >
           {tab === 'params' && <ParamsTab request={request} />}
-          {tab === 'body' && <BodyTab request={request} />}
+          {tab === 'body' && !isWs && <BodyTab request={request} />}
           {tab === 'headers' && <HeadersTab request={request} />}
           {tab === 'auth' && <AuthTab request={request} />}
-          {tab === 'scripts' && <ScriptsTab request={request} />}
+          {tab === 'scripts' && !isWs && <ScriptsTab request={request} />}
         </div>
       </div>
       {responsePaneOpen && (
