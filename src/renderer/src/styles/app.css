@@ -724,6 +724,14 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  border-radius: 6px;
+}
+
+.folder-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-radius: 6px;
 }
 
 .col-row {
@@ -851,6 +859,31 @@ textarea {
 
 .req-active .req-name {
   font-weight: 500;
+}
+
+/* ---------- drag-and-drop: move a request/folder into another folder ---------- */
+
+/* The whole block (header + its contents) is the drop zone, not just the
+   header row — outline the block and tint its header so it's clear the
+   entire folder/collection accepts the drop, not just the name row. */
+.col-block.drop-target,
+.folder-block.drop-target {
+  outline: 1.5px dashed var(--accent);
+  outline-offset: -1.5px;
+}
+
+.col-block.drop-target > .col-row,
+.folder-block.drop-target > .folder-row {
+  background: color-mix(in oklab, var(--accent) 16%, transparent);
+  border-radius: 6px;
+}
+
+.folder-block.dragging > .folder-row {
+  opacity: 0.45;
+}
+
+.req-row.dragging {
+  opacity: 0.45;
 }
 
 .method {
@@ -1051,6 +1084,76 @@ textarea {
 .var-peek-save:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* ---------- set-as-variable prompt (right-click a selection) ---------- */
+
+.setvar-peek {
+  z-index: 91;
+  padding: 16px 18px;
+  gap: 12px;
+  border-radius: 12px;
+}
+
+.setvar-peek .var-peek-name {
+  font-size: 14px;
+}
+
+.setvar-preview {
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: var(--text2);
+  background: var(--sunken);
+  border-radius: 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setvar-name-input {
+  height: 34px;
+  font-size: 13px;
+  border-radius: 7px;
+}
+
+.setvar-scope {
+  display: flex;
+  gap: 8px;
+}
+
+.setvar-scope-btn {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text2);
+  background: var(--sunken);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setvar-scope-btn.setvar-scope-on {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.setvar-save {
+  height: 34px;
+  font-size: 12.5px;
+}
+
+/* Redraws the field's text selection while the prompt has stolen focus. */
+.setvar-selmark {
+  position: fixed;
+  z-index: 89;
+  background: color-mix(in oklab, var(--accent) 35%, transparent);
+  border-radius: 2px;
+  pointer-events: none;
 }
 
 .req-name {

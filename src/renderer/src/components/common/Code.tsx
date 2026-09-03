@@ -5,6 +5,7 @@ import { useMergedVars } from '@/stores/app'
 import { useUi } from '@/stores/ui'
 import { useVarSuggest } from '@/components/common/VarSuggest'
 import { varHoverHandlers } from '@/components/common/VarPeek'
+import { useVarContextMenu } from '@/components/common/SetVariable'
 import { FindMarksLayer } from '@/components/common/FindBar'
 
 const ED_FONT = '400 12px "JetBrains Mono", monospace'
@@ -155,6 +156,10 @@ export function CodeEditor({
     }
   })
 
+  const onSelectionContext = useVarContextMenu<HTMLTextAreaElement>(onChange, {
+    multiline: { lineHeight: ED_LINE_H, padTop: 12 }
+  })
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
     if (varSuggest && suggest.onKeyDown(e)) return
     if (e.key === 'Tab') {
@@ -201,6 +206,7 @@ export function CodeEditor({
           className="ed-input code-font"
           value={value}
           {...varHoverHandlers({ font: ED_FONT, multiline: { lineHeight: ED_LINE_H, padTop: 12 } })}
+          onContextMenu={onSelectionContext}
           onChange={(e) => {
             onChange(e.target.value)
             if (varSuggest) suggest.check(e.target)

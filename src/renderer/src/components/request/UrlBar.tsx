@@ -11,6 +11,7 @@ import { findParentFolder } from '@/lib/tree'
 import { resolveForCodegen } from '@/lib/resolve'
 import { useVarSuggest } from '@/components/common/VarSuggest'
 import { varHoverHandlers } from '@/components/common/VarPeek'
+import { useVarContextMenu } from '@/components/common/SetVariable'
 import { CopyMenu } from '@/components/common/CopyMenu'
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'QUERY']
@@ -216,6 +217,7 @@ function UrlInput({
       })
     }
   })
+  const onSelectionContext = useVarContextMenu<HTMLInputElement>(onChange)
 
   return (
     <div className="url-input-wrap" title={resolved.text}>
@@ -238,6 +240,7 @@ function UrlInput({
         className="url-input code-font"
         value={url}
         {...varHoverHandlers({ font: '500 12.5px "JetBrains Mono", monospace' })}
+        onContextMenu={onSelectionContext}
         onChange={(e) => {
           onChange(e.target.value)
           requestAnimationFrame(sync)

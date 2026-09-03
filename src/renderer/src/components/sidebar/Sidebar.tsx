@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { create } from 'zustand'
 import { Search, Plus, Ellipsis, ChevronDown, ChevronRight, Download } from 'lucide-react'
 import type { Collection, FolderNode, RequestNode, TreeNode } from '@shared/types'
 import { buildCurl } from '@shared/codegen'
@@ -6,6 +7,75 @@ import { mergedVars, useApp } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
 import { useUi, type ContextItem } from '@/stores/ui'
 import { resolveForCodegen } from '@/lib/resolve'
+import { findNode, isFolderWithin } from '@/lib/tree'
+
+/** In-app drag payload for moving a request/folder between folders or
+ *  collections — native dataTransfer isn't readable during dragover, so we
+ *  track the dragged node here for live drop-target feedback. */
+interface DragNode {
+  collectionId: string
+  nodeId: string
+  kind: 'request' | 'folder'
+}
+
+const useDragNode = create<{ drag: DragNode | null }>(() => ({ drag: null }))
+
+function startNodeDrag(e: React.DragEvent, drag: DragNode): void {
+  e.stopPropagation()
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('text/plain', drag.nodeId)
+  useDragNode.setState({ drag })
+}
+
+function endNodeDrag(): void {
+  useDragNode.setState({ drag: null })
+}
+
+/** Wire onto a folder/collection row to accept a dropped request or folder. */
+function useDropTarget(
+  targetCollectionId: string,
+  targetFolderId: string | null,
+  disabled: boolean
+): {
+  dropOver: boolean
+  onDragOver: (e: React.DragEvent) => void
+  onDragLeave: () => void
+  onDrop: (e: React.DragEvent) => void
+} {
+  const drag = useDragNode((s) => s.drag)
+  const collections = useApp((s) => s.collections)
+  const [dropOver, setDropOver] = useState(false)
+  const eligible = useMemo(() => {
+    if (!drag || disabled) return false
+    if (drag.kind !== 'folder' || !targetFolderId) return drag.nodeId !== targetFolderId
+    // Dropping a folder into itself or one of its own subfolders would
+    // silently discard it — the target no longer exists once removed.
+    const source = collections.find((c) => c.id === drag.collectionId)
+    const node = source && findNode(source.items, drag.nodeId)
+    return !node || !isFolderWithin(node, targetFolderId)
+  }, [drag, disabled, targetFolderId, collections])
+  return {
+    dropOver: dropOver && eligible,
+    onDragOver: (e) => {
+      if (!eligible) return
+      e.preventDefault()
+      e.stopPropagation()
+      e.dataTransfer.dropEffect = 'move'
+      setDropOver(true)
+    },
+    onDragLeave: () => setDropOver(false),
+    onDrop: (e) => {
+      if (!eligible) return
+      e.preventDefault()
+      e.stopPropagation()
+      setDropOver(false)
+      const d = useDragNode.getState().drag
+      if (!d) return
+      useDragNode.setState({ drag: null })
+      useApp.getState().moveNode(d.collectionId, d.nodeId, targetCollectionId, targetFolderId)
+    }
+  }
+}
 
 function collectRequests(items: TreeNode[]): RequestNode[] {
   const out: RequestNode[] = []
@@ -61,10 +131,12 @@ function EditableLabel({
       value={draft}
       autoFocus
       spellCheck={false}
+      draggable={false}
       onFocus={(e) => e.target.select()}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}
       onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => {
         e.stopPropagation()
@@ -345,8 +417,15 @@ function CollectionBlock({ collection }: { collection: Collection }): React.JSX.
     }
   ]
 
+  const drop = useDropTarget(collection.id, null, false)
+
   return (
-    <div className="col-block">
+    <div
+      className={`col-block${drop.dropOver ? ' drop-target' : ''}`}
+      onDragOver={drop.onDragOver}
+      onDragLeave={drop.onDragLeave}
+      onDrop={drop.onDrop}
+    >
       <div
         className="col-row"
         onClick={() => setOpen((v) => !v)}
@@ -414,6 +493,8 @@ function FolderRow({
   const app = useApp.getState
   const setRenamingId = useUi((s) => s.setRenamingId)
   const onContext = useContextMenu()
+  const dragging = useDragNode((s) => s.drag?.nodeId === folder.id)
+  const drop = useDropTarget(collectionId, folder.id, false)
   // Subtly highlight the folder that directly holds the currently-selected request.
   const holdsActive = useApp(
     (s) =>
@@ -454,11 +535,19 @@ function FolderRow({
   ]
 
   return (
-    <>
+    <div
+      className={`folder-block${dragging ? ' dragging' : ''}${drop.dropOver ? ' drop-target' : ''}`}
+      onDragOver={drop.onDragOver}
+      onDragLeave={drop.onDragLeave}
+      onDrop={drop.onDrop}
+    >
       <div
         className={`folder-row ${holdsActive ? 'folder-holds-active' : ''}`}
         onClick={() => setOpen((v) => !v)}
         onContextMenu={(e) => onContext(e, menu)}
+        draggable
+        onDragStart={(e) => startNodeDrag(e, { collectionId, nodeId: folder.id, kind: 'folder' })}
+        onDragEnd={endNodeDrag}
       >
         {open ? (
           <ChevronDown className="tree-caret" size={14} strokeWidth={2.2} />
@@ -505,7 +594,7 @@ function FolderRow({
       {open && folder.children.length === 0 && (
         <div className="sb-empty sb-empty-indent">Empty folder</div>
       )}
-    </>
+    </div>
   )
 }
 
@@ -524,6 +613,7 @@ function RequestRow({
   const toast = useUi((s) => s.toast)
   const onContext = useContextMenu()
   const active = selection?.requestId === request.id
+  const dragging = useDragNode((s) => s.drag?.nodeId === request.id)
 
   const menu: ContextItem[] = [
     {
@@ -564,9 +654,12 @@ function RequestRow({
 
   return (
     <div
-      className={`req-row ${indent ? 'req-indent' : ''} ${active ? 'req-active' : ''}`}
+      className={`req-row ${indent ? 'req-indent' : ''} ${active ? 'req-active' : ''}${dragging ? ' dragging' : ''}`}
       onClick={() => useApp.getState().selectRequest(collectionId, request.id)}
       onContextMenu={(e) => onContext(e, menu)}
+      draggable
+      onDragStart={(e) => startNodeDrag(e, { collectionId, nodeId: request.id, kind: 'request' })}
+      onDragEnd={endNodeDrag}
     >
       <span className={`method method-${request.method.toLowerCase()}`}>{request.method}</span>
       <span className="req-name">

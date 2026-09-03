@@ -10,6 +10,7 @@ import { useUi, type RequestTab } from '@/stores/ui'
 import { CodeEditor } from '@/components/common/Code'
 import { useVarSuggest } from '@/components/common/VarSuggest'
 import { varHoverHandlers } from '@/components/common/VarPeek'
+import { useVarContextMenu } from '@/components/common/SetVariable'
 import { FindBar } from '@/components/common/FindBar'
 import { Select } from '@/components/common/Select'
 
@@ -387,6 +388,7 @@ function KvTableRow({
       })
     }
   })
+  const onSelectionContext = useVarContextMenu<HTMLInputElement>((v) => patch(row.id, { value: v }))
 
   const rowClass = `kv-row${!blank && !row.enabled ? ' kv-off' : ''}${blank ? ' kv-blank' : ''}`
   return (
@@ -410,6 +412,7 @@ function KvTableRow({
         placeholder="value"
         value={row.value}
         {...varHoverHandlers({ font: '400 12px "JetBrains Mono", monospace' })}
+        onContextMenu={onSelectionContext}
         onChange={(e) => {
           patch(row.id, { value: e.target.value })
           suggest.check(e.target)
@@ -611,6 +614,7 @@ function AuthField({
   onChange: (value: string) => void
   type?: string
 }): React.JSX.Element {
+  const onSelectionContext = useVarContextMenu<HTMLInputElement>(onChange)
   return (
     <div className="auth-field-row">
       <span className="auth-field-label">{label}</span>
@@ -619,6 +623,7 @@ function AuthField({
         type={type}
         placeholder={placeholder}
         value={value}
+        onContextMenu={onSelectionContext}
         onChange={(e) => onChange(e.target.value)}
         spellCheck={false}
       />

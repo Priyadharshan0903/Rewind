@@ -34,6 +34,26 @@ export function mapRequest(
   })
 }
 
+export function findNode(items: TreeNode[], nodeId: string): TreeNode | null {
+  for (const node of items) {
+    if (node.id === nodeId) return node
+    if (node.type === 'folder') {
+      const hit = findNode(node.children, nodeId)
+      if (hit) return hit
+    }
+  }
+  return null
+}
+
+/** True if `folderId` is `node` itself or nested somewhere inside it — used to
+ *  stop a folder being dropped into its own subtree (which would silently
+ *  drop it, since the target no longer exists once the source is removed). */
+export function isFolderWithin(node: TreeNode, folderId: string): boolean {
+  if (node.type !== 'folder') return false
+  if (node.id === folderId) return true
+  return node.children.some((c) => isFolderWithin(c, folderId))
+}
+
 export function findParentFolder(items: TreeNode[], requestId: string): string | null {
   for (const node of items) {
     if (node.type === 'folder') {

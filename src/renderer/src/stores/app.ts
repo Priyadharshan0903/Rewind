@@ -21,9 +21,11 @@ import {
   cloneNode,
   collectRequestIds,
   duplicateIn,
+  findNode,
   findRequest,
   firstRequest,
   insertNode,
+  isFolderWithin,
   mapRequest,
   removeNode,
   renameFolder
@@ -77,6 +79,14 @@ interface AppState {
   addRequest: (collectionId: string, folderId: string | null) => void
   deleteNode: (collectionId: string, nodeId: string) => void
   duplicateNode: (collectionId: string, nodeId: string) => void
+  /** Drag-and-drop a request or folder into another folder (or a collection's
+   *  root, when `toFolderId` is null) — same collection or a different one. */
+  moveNode: (
+    fromCollectionId: string,
+    nodeId: string,
+    toCollectionId: string,
+    toFolderId: string | null
+  ) => void
   duplicateCollection: (collectionId: string) => void
   deleteCollection: (collectionId: string) => void
 }
@@ -398,6 +408,47 @@ export const useApp = create<AppState>((set, get) => ({
       get
     )
     if (createdId) get().selectRequest(collectionId, createdId)
+  },
+
+  moveNode: (fromCollectionId, nodeId, toCollectionId, toFolderId) => {
+    const { collections } = get()
+    const fromCollection = collections.find((c) => c.id === fromCollectionId)
+    if (!fromCollection) return
+    const node = findNode(fromCollection.items, nodeId)
+    if (!node) return
+    // Dropping a folder into itself (or a folder nested inside it) would
+    // otherwise silently discard it — the target no longer exists once the
+    // source subtree is removed.
+    if (toFolderId && isFolderWithin(node, toFolderId)) return
+
+    if (fromCollectionId === toCollectionId) {
+      mutateCollection(
+        fromCollectionId,
+        (c) => ({ ...c, items: insertNode(removeNode(c.items, nodeId), toFolderId, node) }),
+        set,
+        get
+      )
+      return
+    }
+
+    const movedRequestIds = new Set(collectRequestIds([node]))
+    set((s) => ({
+      collections: s.collections.map((c) => {
+        if (c.id === fromCollectionId) return { ...c, items: removeNode(c.items, nodeId) }
+        if (c.id === toCollectionId) return { ...c, items: insertNode(c.items, toFolderId, node) }
+        return c
+      }),
+      openTabs: s.openTabs.map((t) =>
+        movedRequestIds.has(t.requestId) ? { ...t, collectionId: toCollectionId } : t
+      ),
+      selection:
+        s.selection && movedRequestIds.has(s.selection.requestId)
+          ? { ...s.selection, collectionId: toCollectionId }
+          : s.selection
+    }))
+    scheduleCollectionSave(fromCollectionId, get)
+    scheduleCollectionSave(toCollectionId, get)
+    persistTabs(get)
   },
 
   duplicateCollection: (collectionId) => {
