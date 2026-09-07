@@ -10,6 +10,7 @@ import { useUi, type RequestTab } from '@/stores/ui'
 import { CodeEditor } from '@/components/common/Code'
 import { useVarSuggest } from '@/components/common/VarSuggest'
 import { varHoverHandlers } from '@/components/common/VarPeek'
+import { VarInput } from '@/components/common/VarInput'
 import { useVarContextMenu } from '@/components/common/SetVariable'
 import { FindBar } from '@/components/common/FindBar'
 import { Select } from '@/components/common/Select'
@@ -400,15 +401,17 @@ function KvTableRow({
         disabled={blank}
         onChange={(e) => patch(row.id, { enabled: e.target.checked })}
       />
-      <input
+      <VarInput
         className="kv-input code-font"
+        vars={vars}
         placeholder={keyPlaceholder}
         value={row.key}
         onChange={(e) => patch(row.id, { key: e.target.value })}
         spellCheck={false}
       />
-      <input
+      <VarInput
         className="kv-input code-font"
+        vars={vars}
         placeholder="value"
         value={row.value}
         {...varHoverHandlers({ font: '400 12px "JetBrains Mono", monospace' })}
@@ -614,19 +617,39 @@ function AuthField({
   onChange: (value: string) => void
   type?: string
 }): React.JSX.Element {
+  const vars = useMergedVars()
+  const suggest = useVarSuggest({
+    vars,
+    mode: 'input',
+    font: '400 12px "JetBrains Mono", monospace',
+    apply: (text, caret, el) => {
+      onChange(text)
+      requestAnimationFrame(() => {
+        el.selectionStart = el.selectionEnd = caret
+      })
+    }
+  })
   const onSelectionContext = useVarContextMenu<HTMLInputElement>(onChange)
   return (
     <div className="auth-field-row">
       <span className="auth-field-label">{label}</span>
-      <input
+      <VarInput
         className="auth-field-input code-font"
+        vars={vars}
         type={type}
         placeholder={placeholder}
         value={value}
+        {...varHoverHandlers({ font: '400 12px "JetBrains Mono", monospace' })}
         onContextMenu={onSelectionContext}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value)
+          suggest.check(e.target)
+        }}
+        onKeyDown={(e) => suggest.onKeyDown(e)}
+        onBlur={suggest.onBlur}
         spellCheck={false}
       />
+      {suggest.dropdown}
     </div>
   )
 }

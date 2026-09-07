@@ -1355,12 +1355,51 @@ textarea {
   font-weight: 500;
 }
 
-.url-var {
+/* ---------- {{variable}} tokens (url · headers · params · auth · body) ----------
+   Tinted with the active theme accent so a variable reads apart from literal
+   text at a glance; unresolved names take the error hue instead. */
+
+.var-tok {
   color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  border-radius: 3px;
 }
 
-.url-var-missing {
+.var-tok-bad {
   color: var(--err);
+  background: color-mix(in oklab, var(--err) 13%, transparent);
+}
+
+/* Highlight layer pinned over a transparent-text input. Its font and box
+   metrics are copied from the input at runtime (see VarInput), so only the
+   painting rules live here. */
+
+.var-hl-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.var-hl-input {
+  color: transparent;
+  caret-color: var(--text);
+}
+
+.var-hl-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-style: solid;
+  border-color: transparent;
+  white-space: pre;
+  color: var(--text);
+  pointer-events: none;
+}
+
+.var-hl-text {
+  white-space: pre;
 }
 
 .url-input {
@@ -3679,9 +3718,23 @@ textarea {
 .kv-off .kv-input:not(:focus) {
   color: var(--text3);
 }
-.kv-off .kv-input.code-font {
+.kv-off .kv-input.code-font,
+.kv-off .var-hl-layer {
   text-decoration: line-through;
   text-decoration-color: var(--text3);
+}
+.kv-row .var-hl-wrap {
+  display: flex;
+}
+.kv-row .var-hl-wrap > .kv-input {
+  flex: 1;
+}
+.kv-off .var-hl-wrap:not(:focus-within) .var-hl-layer {
+  color: var(--text3);
+}
+.kv-off .var-hl-wrap:not(:focus-within) .var-tok {
+  color: var(--text3);
+  background: color-mix(in oklab, var(--text3) 12%, transparent);
 }
 .kv-desc {
   color: var(--text2);

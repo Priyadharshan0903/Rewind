@@ -5,6 +5,7 @@ import { useMergedVars } from '@/stores/app'
 import { useUi } from '@/stores/ui'
 import { useVarSuggest } from '@/components/common/VarSuggest'
 import { varHoverHandlers } from '@/components/common/VarPeek'
+import { varSegments, varTokenClass } from '@/components/common/VarInput'
 import { useVarContextMenu } from '@/components/common/SetVariable'
 import { FindMarksLayer } from '@/components/common/FindBar'
 
@@ -13,19 +14,39 @@ const ED_LINE_H = 21 // 12px × 1.75
 
 export const CodeLine = memo(function CodeLine({
   text,
-  language
+  language,
+  vars
 }: {
   text: string
   language: 'json' | 'js'
+  /** When given, `{{name}}` inside the line is tinted as a variable. */
+  vars?: Record<string, string>
 }): React.JSX.Element {
   const toks = tokenizeLine(text, language)
   return (
     <>
-      {toks.map((t, i) => (
-        <span key={i} className={t.kind === 'plain' ? undefined : `tok-${t.kind}`}>
-          {t.text}
-        </span>
-      ))}
+      {toks.map((t, i) => {
+        const cls = t.kind === 'plain' ? undefined : `tok-${t.kind}`
+        if (!vars) {
+          return (
+            <span key={i} className={cls}>
+              {t.text}
+            </span>
+          )
+        }
+        // A variable keeps its own colour even inside a JSON string, so it
+        // stands out the same way it does in the URL bar and headers.
+        const segs = varSegments(t.text, vars)
+        return (
+          <span key={i} className={cls}>
+            {segs.map((sg, j) => (
+              <span key={j} className={varTokenClass(sg.kind)}>
+                {sg.text}
+              </span>
+            ))}
+          </span>
+        )
+      })}
       {'\n'}
     </>
   )
@@ -198,7 +219,7 @@ export function CodeEditor({
         </div>
         <pre className="ed-hl code-font" ref={hlRef} aria-hidden>
           {lines.map((l, i) => (
-            <CodeLine key={i} text={l} language={language} />
+            <CodeLine key={i} text={l} language={language} vars={varSuggest ? vars : undefined} />
           ))}
         </pre>
         <textarea

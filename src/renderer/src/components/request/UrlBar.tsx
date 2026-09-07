@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
 import type { Collection, HttpMethod, RequestNode } from '@shared/types'
-import { interpolate, VAR_RE } from '@shared/interpolate'
+import { interpolate } from '@shared/interpolate'
 import { parseCurl, type ParsedCurl } from '@shared/curlParse'
 import { newId } from '@shared/id'
 import { useApp, useMergedVars } from '@/stores/app'
@@ -11,6 +11,7 @@ import { findParentFolder } from '@/lib/tree'
 import { resolveForCodegen } from '@/lib/resolve'
 import { useVarSuggest } from '@/components/common/VarSuggest'
 import { varHoverHandlers } from '@/components/common/VarPeek'
+import { varSegments, VarTokens } from '@/components/common/VarInput'
 import { useVarContextMenu } from '@/components/common/SetVariable'
 import { CopyMenu } from '@/components/common/CopyMenu'
 
@@ -183,21 +184,7 @@ function UrlInput({
   const vars = useMergedVars()
   const resolved = useMemo(() => interpolate(url, vars, { dynamic: false }), [url, vars])
 
-  const segments = useMemo(() => {
-    const out: { text: string; kind: 'plain' | 'var' | 'missing' }[] = []
-    let last = 0
-    VAR_RE.lastIndex = 0
-    let m: RegExpExecArray | null
-    while ((m = VAR_RE.exec(url))) {
-      if (m.index > last) out.push({ text: url.slice(last, m.index), kind: 'plain' })
-      const name = m[1] ?? m[2]
-      const known = name.startsWith('$') || Object.prototype.hasOwnProperty.call(vars, name)
-      out.push({ text: m[0], kind: known ? 'var' : 'missing' })
-      last = m.index + m[0].length
-    }
-    if (last < url.length) out.push({ text: url.slice(last), kind: 'plain' })
-    return out
-  }, [url, vars])
+  const segments = useMemo(() => varSegments(url, vars), [url, vars])
 
   const sync = (): void => {
     if (hlRef.current && inputRef.current) {
@@ -223,16 +210,7 @@ function UrlInput({
     <div className="url-input-wrap" title={resolved.text}>
       <div className="url-hl-clip">
         <div className="url-hl code-font" ref={hlRef}>
-          {segments.map((s, i) => (
-            <span
-              key={i}
-              className={
-                s.kind === 'plain' ? undefined : s.kind === 'var' ? 'url-var' : 'url-var-missing'
-              }
-            >
-              {s.text}
-            </span>
-          ))}
+          <VarTokens segs={segments} />
         </div>
       </div>
       <input
