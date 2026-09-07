@@ -1755,6 +1755,13 @@ textarea {
   padding: 8px 0 0;
 }
 
+/* In the Headers/Params grid the button sits under the table, so it hugs the
+   left edge instead of stretching across the flex column. */
+.kv-tab > .add-header {
+  align-self: flex-start;
+  padding: 1px 0 0 2px;
+}
+
 /* ---------- auth tab ---------- */
 
 .role-select {

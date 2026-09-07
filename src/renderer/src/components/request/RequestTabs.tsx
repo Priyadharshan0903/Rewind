@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Search, X, Plus, ArrowRight, ShieldOff } from 'lucide-react'
 import type { Capture, FormField, KV, RequestAuth, RequestNode } from '@shared/types'
 import { newId } from '@shared/id'
@@ -158,6 +158,7 @@ function ParamsTab({ request }: { request: RequestNode }): React.JSX.Element {
       <KvTable
         rows={params}
         keyPlaceholder="param"
+        addLabel="Add parameter"
         onChange={(next) => updateRequest({ params: next, url: urlWithParams(request.url, next) })}
       />
       <div className="tab-hint">Rows stay in sync with the query string in the URL bar.</div>
@@ -315,17 +316,24 @@ function FormGrid({ request }: { request: RequestNode }): React.JSX.Element {
  * blank row promotes it to a real row (it keeps the same React key, so focus is
  * preserved) and a fresh blank row appears below. The value column gets
  * {{variable}} autocomplete + hover peek.
+ *
+ * The blank row alone is easy to miss — its checkbox is disabled and its
+ * placeholders are dimmed — so an explicit add button below the table puts the
+ * cursor in it rather than appending a second empty row.
  */
 function KvTable({
   rows,
   onChange,
-  keyPlaceholder = 'key'
+  keyPlaceholder = 'key',
+  addLabel = 'Add row'
 }: {
   rows: KV[]
   onChange: (rows: KV[]) => void
   keyPlaceholder?: string
+  addLabel?: string
 }): React.JSX.Element {
   const [addId, setAddId] = useState(() => newId(6))
+  const [focusId, setFocusId] = useState<string | null>(null)
 
   const patch = (id: string, p: Partial<KV>): void => {
     if (rows.some((r) => r.id === id)) {
@@ -339,27 +347,35 @@ function KvTable({
   const remove = (id: string): void => onChange(rows.filter((r) => r.id !== id))
 
   const display: KV[] = [...rows, { id: addId, key: '', value: '', enabled: true }]
+  const clearFocus = useCallback(() => setFocusId(null), [])
 
   return (
-    <div className="kv-table">
-      <div className="kv-row kv-head">
-        <span />
-        <span className="micro-label">KEY</span>
-        <span className="micro-label">VALUE</span>
-        <span className="micro-label">DESCRIPTION</span>
-        <span />
+    <>
+      <div className="kv-table">
+        <div className="kv-row kv-head">
+          <span />
+          <span className="micro-label">KEY</span>
+          <span className="micro-label">VALUE</span>
+          <span className="micro-label">DESCRIPTION</span>
+          <span />
+        </div>
+        {display.map((row) => (
+          <KvTableRow
+            key={row.id}
+            row={row}
+            blank={row.id === addId}
+            keyPlaceholder={keyPlaceholder}
+            patch={patch}
+            remove={remove}
+            focusKey={row.id === focusId}
+            onKeyFocused={clearFocus}
+          />
+        ))}
       </div>
-      {display.map((row) => (
-        <KvTableRow
-          key={row.id}
-          row={row}
-          blank={row.id === addId}
-          keyPlaceholder={keyPlaceholder}
-          patch={patch}
-          remove={remove}
-        />
-      ))}
-    </div>
+      <button className="link-btn add-header" onClick={() => setFocusId(addId)}>
+        <Plus size={13} strokeWidth={2} /> {addLabel}
+      </button>
+    </>
   )
 }
 
@@ -368,15 +384,29 @@ function KvTableRow({
   blank,
   keyPlaceholder,
   patch,
-  remove
+  remove,
+  focusKey,
+  onKeyFocused
 }: {
   row: KV
   blank: boolean
   keyPlaceholder: string
   patch: (id: string, p: Partial<KV>) => void
   remove: (id: string) => void
+  /** Put the cursor in this row's key field (the add button asks for this). */
+  focusKey?: boolean
+  onKeyFocused?: () => void
 }): React.JSX.Element {
   const vars = useMergedVars()
+  const keyRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!focusKey) return
+    keyRef.current?.focus()
+    keyRef.current?.scrollIntoView({ block: 'nearest' })
+    onKeyFocused?.()
+  }, [focusKey, onKeyFocused])
+
   const suggest = useVarSuggest({
     vars,
     mode: 'input',
@@ -404,6 +434,7 @@ function KvTableRow({
       <VarInput
         className="kv-input code-font"
         vars={vars}
+        inputRef={keyRef}
         placeholder={keyPlaceholder}
         value={row.key}
         onChange={(e) => patch(row.id, { key: e.target.value })}
@@ -461,6 +492,7 @@ function HeadersTab({ request }: { request: RequestNode }): React.JSX.Element {
       <KvTable
         rows={request.headers}
         keyPlaceholder="Header"
+        addLabel="Add header"
         onChange={(next) => updateRequest({ headers: next })}
       />
     </div>
