@@ -615,6 +615,28 @@ export function useMergedVars(): Record<string, string> {
   }, [selection, collections, workspace, environments])
 }
 
+/**
+ * Variables as an ordered list for import-time substitution: collection-scoped
+ * names first (they travel with the collection on export), then env-only ones.
+ * Values are the merged/effective ones, so env still wins a name collision.
+ */
+export function useVarEntries(): { name: string; value: string }[] {
+  const selection = useApp((s) => s.selection)
+  const collections = useApp((s) => s.collections)
+  const workspace = useApp((s) => s.workspace)
+  const environments = useApp((s) => s.environments)
+  return useMemo(() => {
+    const collection = collections.find((c) => c.id === selection?.collectionId)
+    const env =
+      environments.find((e) => e.id === workspace?.activeEnvironmentId) ?? environments[0] ?? null
+    const colVars = varsFromEnv(collection?.variables ?? [])
+    const envVars = varsFromEnv(env?.variables ?? [])
+    const merged = { ...colVars, ...envVars }
+    const names = [...Object.keys(colVars), ...Object.keys(envVars).filter((n) => !(n in colVars))]
+    return names.filter((n) => merged[n]).map((name) => ({ name, value: merged[name] }))
+  }, [selection, collections, workspace, environments])
+}
+
 export function useSelectedRequest(): {
   collection: Collection
   request: RequestNode

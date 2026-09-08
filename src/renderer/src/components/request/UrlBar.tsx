@@ -4,7 +4,8 @@ import type { Collection, HttpMethod, RequestNode } from '@shared/types'
 import { interpolate } from '@shared/interpolate'
 import { parseCurl, type ParsedCurl } from '@shared/curlParse'
 import { newId } from '@shared/id'
-import { useApp, useMergedVars } from '@/stores/app'
+import { substituteUrl, substituteValue } from '@shared/varSubstitute'
+import { useApp, useMergedVars, useVarEntries } from '@/stores/app'
 import { useRuns } from '@/stores/runs'
 import { useUi } from '@/stores/ui'
 import { findParentFolder } from '@/lib/tree'
@@ -69,6 +70,7 @@ export function UrlRow({ request }: { request: RequestNode }): React.JSX.Element
   const cancelSend = useRuns((s) => s.cancelSend)
   const toast = useUi((s) => s.toast)
   const vars = useMergedVars()
+  const varEntries = useVarEntries()
   // Resolve the current request for code snippets — no send required.
   const codegenReq = useMemo(() => resolveForCodegen(request, vars), [request, vars])
 
@@ -96,16 +98,32 @@ export function UrlRow({ request }: { request: RequestNode }): React.JSX.Element
       }
     }
     const hasAuthHeader = parsed.headers.some(([k]) => k.toLowerCase() === 'authorization')
+    // Fold known values back into {{variables}} so the import stays portable
+    // across environments — and so pasted secrets don't land in the collection.
+    const url = substituteUrl(parsed.url, varEntries)
+    const used = [...url.names]
+    const headers = parsed.headers.map(([key, value]) => {
+      const sub = substituteValue(value, varEntries)
+      if (sub.name) used.push(sub.name)
+      return { id: newId(6), key, value: sub.text, enabled: true }
+    })
     updateRequest({
       method: parsed.method,
-      url: parsed.url,
-      headers: parsed.headers.map(([key, value]) => ({ id: newId(6), key, value, enabled: true })),
+      url: url.text,
+      headers,
       body,
       // An explicit Authorization header replaces the inherited env auth.
       ...(hasAuthHeader ? { auth: { mode: 'none' as const } } : {})
     })
+    const unique = [...new Set(used)]
+    const shown = unique
+      .slice(0, 3)
+      .map((n) => `{{${n}}}`)
+      .join(' ')
     toast(
-      `Imported from cURL — ${parsed.method} · ${parsed.headers.length} headers${body.mode !== 'none' ? ' · body' : ''}`
+      `Imported from cURL — ${parsed.method} · ${parsed.headers.length} headers` +
+        `${body.mode !== 'none' ? ' · body' : ''}` +
+        `${unique.length ? ` · ${shown}${unique.length > 3 ? ` +${unique.length - 3}` : ''}` : ''}`
     )
   }
 
