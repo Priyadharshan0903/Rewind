@@ -4,6 +4,14 @@ A local-first API client for macOS, built with Electron. Every run is stored on 
 
 Implemented from the claude.ai/design mock **Rewind Runbook** (design project `3e859c1b`); app name from direction 1c ("Rewind — any API call, replayed") and icon from mark 12a ("Exchange", REQ ⇄ RES) of **App Name & Icon**, restyled to a white tile with the mark in `#5B6AE0`.
 
+## Images
+
+<img width="1728" height="1084" alt="Screenshot 2026-09-30 at 7 01 44 PM" src="https://github.com/user-attachments/assets/550b4ace-59d0-447f-ac49-f33ade9932f5" />
+<img width="1728" height="1084" alt="Screenshot 2026-09-30 at 7 01 38 PM" src="https://github.com/user-attachments/assets/97ca4ce4-bcb5-42dc-af4e-0f7f30b229ba" />
+<img width="1728" height="1084" alt="Screenshot 2026-09-30 at 7 00 53 PM" src="https://github.com/user-attachments/assets/8af735f6-7d84-444f-b63e-1c3e1a575e3d" />
+
+
+
 ## Features
 
 - **Tabs** — Postman-style open-request tabs above the editor: click requests to open them side by side, switch freely, close with ✕ / middle-click / `⌘W` (File → Close Tab; `⇧⌘W` closes the window), reorder-safe fallback when a tabbed request is deleted, `+` for a quick new request, and a friendly empty state when nothing's open. Open tabs and the active tab survive restarts, per profile.
